@@ -6,6 +6,75 @@ const { body, validationResult } = require('express-validator');
 const { Member, Admin } = require('../models');
 const { generateOTP } = require('../utils/helpers');
 
+// ─── In-memory OTP store for driver auth ──────────────────────────────────────
+// Accepts both 'mobile' and 'phone' fields from the request body.
+// Key: mobile number string. Value: { otp, expiresAt }
+const driverOtpStore = new Map();
+
+// POST /auth/send-otp  — driver app login step 1
+router.post('/send-otp', (req, res) => {
+  const mobile = req.body.mobile || req.body.phone;
+
+  if (!mobile || !/^\d{10}$/.test(mobile)) {
+    return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number required' });
+  }
+
+  const otp = generateOTP();
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+  driverOtpStore.set(mobile, { otp, expiresAt });
+
+  console.log(`\nDEV OTP for ${mobile}: ${otp}\n`);
+
+  res.json({ success: true, message: 'OTP sent' });
+});
+
+// POST /auth/verify-otp  — driver app login step 2
+router.post('/verify-otp', async (req, res) => {
+  const mobile = req.body.mobile || req.body.phone;
+  const { otp } = req.body;
+
+  if (!mobile || !/^\d{10}$/.test(mobile)) {
+    return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number required' });
+  }
+  if (!otp || otp.length !== 6) {
+    return res.status(400).json({ success: false, message: '6-digit OTP required' });
+  }
+
+  const stored = driverOtpStore.get(mobile);
+
+  if (!stored) {
+    return res.status(400).json({ success: false, message: 'No OTP requested for this number. Please request a new OTP.' });
+  }
+
+  if (Date.now() > stored.expiresAt) {
+    driverOtpStore.delete(mobile);
+    return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+  }
+
+  const bypassOtp = process.env.OTP_BYPASS;
+  const isValid = (bypassOtp && otp === bypassOtp) || stored.otp === otp;
+
+  if (!isValid) {
+    return res.status(400).json({ success: false, message: 'Invalid OTP' });
+  }
+
+  driverOtpStore.delete(mobile);
+
+  const token = jwt.sign(
+    { mobile, phone: mobile, type: 'driver' },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  res.json({
+    success: true,
+    message: 'Login successful',
+    token,
+    driver: { phone: mobile, mobile }
+  });
+});
+
 // POST /auth/member/send-otp
 router.post('/member/send-otp', [
   body('phone').matches(/^[6-9]\d{9}$/).withMessage('Valid 10-digit Indian mobile number required')
