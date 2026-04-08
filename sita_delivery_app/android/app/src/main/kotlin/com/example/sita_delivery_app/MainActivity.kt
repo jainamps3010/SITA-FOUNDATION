@@ -1,4 +1,4 @@
-package com.sita.sita_delivery_app
+package com.example.sita_delivery_app
 
 import io.flutter.embedding.android.FlutterActivity
 

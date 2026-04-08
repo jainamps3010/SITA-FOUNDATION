@@ -10,11 +10,8 @@ const start = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connected');
-    app.listen(PORT, () => {
-      console.log(`\n🚀 SITA Foundation API running at http://localhost:${PORT}`);
-      console.log(`   Health: http://localhost:${PORT}/health`);
-      console.log(`   API:    http://localhost:${PORT}/api/v1`);
-      console.log(`   Env:    ${process.env.NODE_ENV || 'development'}\n`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`SITA Foundation server running on port ${PORT}`);
     });
   } catch (err) {
     console.error('❌ Failed to start server:', err.message);
