@@ -29,6 +29,8 @@ const Order = require('./Order')(sequelize);
 const OrderItem = require('./OrderItem')(sequelize);
 const SITAWalletTransaction = require('./SITAWalletTransaction')(sequelize);
 const Dispute = require('./Dispute')(sequelize);
+const SurveyEntity = require('./SurveyEntity')(sequelize);
+const ConsumptionSurvey = require('./ConsumptionSurvey')(sequelize);
 
 // Associations
 Vendor.hasMany(Product, { foreignKey: 'vendor_id', as: 'products' });
@@ -69,6 +71,9 @@ MasterContract.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
 SITAWalletTransaction.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 
+SurveyEntity.hasMany(ConsumptionSurvey, { foreignKey: 'entity_id', as: 'consumption_data' });
+ConsumptionSurvey.belongsTo(SurveyEntity, { foreignKey: 'entity_id', as: 'entity' });
+
 module.exports = {
   sequelize,
   Sequelize,
@@ -80,5 +85,7 @@ module.exports = {
   Order,
   OrderItem,
   SITAWalletTransaction,
-  Dispute
+  Dispute,
+  SurveyEntity,
+  ConsumptionSurvey
 };

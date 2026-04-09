@@ -12,6 +12,7 @@ const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const adminRoutes = require('./routes/admin');
 const deliveryRoutes = require('./routes/delivery');
+const surveyRoutes = require('./routes/survey.routes');
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/delivery', deliveryRoutes);
+app.use('/api/v1/survey', surveyRoutes);
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 app.use(notFound);
