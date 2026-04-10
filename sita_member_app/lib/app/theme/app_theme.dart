@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const primary = Color(0xFF1B7A3E);
-  static const primaryDark = Color(0xFF145F30);
-  static const primaryLight = Color(0xFF2DA05A);
-  static const accent = Color(0xFFFFC107);
-  static const background = Color(0xFFF5F7F5);
+  static const primary = Color(0xFF1A237E);
+  static const primaryDark = Color(0xFF0D1757);
+  static const primaryLight = Color(0xFFE8EAF6);
+  static const secondary = Color(0xFFFF8F00);
+  static const secondaryDark = Color(0xFFE65100);
+  static const secondaryLight = Color(0xFFFFF8E1);
+  static const background = Color(0xFFF5F5F5);
   static const surface = Colors.white;
   static const textPrimary = Color(0xFF1A1A1A);
-  static const textSecondary = Color(0xFF6B7280);
-  static const divider = Color(0xFFE5E7EB);
-  static const error = Color(0xFFDC2626);
-  static const success = Color(0xFF16A34A);
-  static const warning = Color(0xFFF59E0B);
+  static const textSecondary = Color(0xFF757575);
+  static const divider = Color(0xFFE0E0E0);
+  static const error = Color(0xFFC62828);
+  static const success = Color(0xFF00897B);
+  static const warning = Color(0xFFF57F17);
   static const cardShadow = Color(0x0F000000);
 }
 
@@ -22,7 +24,7 @@ class AppTheme {
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
           primary: AppColors.primary,
-          secondary: AppColors.accent,
+          secondary: AppColors.secondary,
           surface: AppColors.surface,
           error: AppColors.error,
         ),
@@ -35,13 +37,13 @@ class AppTheme {
           titleTextStyle: TextStyle(
             color: Colors.white,
             fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             letterSpacing: 0.3,
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.secondary,
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
@@ -49,7 +51,7 @@ class AppTheme {
             ),
             textStyle: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
             ),
             elevation: 0,
@@ -72,7 +74,8 @@ class AppTheme {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: AppColors.divider),
@@ -90,7 +93,8 @@ class AppTheme {
             borderSide: const BorderSide(color: AppColors.error),
           ),
           labelStyle: const TextStyle(color: AppColors.textSecondary),
-          hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          hintStyle:
+              const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         cardTheme: CardThemeData(
           color: Colors.white,
@@ -107,26 +111,47 @@ class AppTheme {
           unselectedItemColor: AppColors.textSecondary,
           type: BottomNavigationBarType.fixed,
           elevation: 8,
-          selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          selectedLabelStyle:
+              TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
           unselectedLabelStyle: TextStyle(fontSize: 11),
         ),
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.background,
           selectedColor: AppColors.primary.withOpacity(0.15),
           labelStyle: const TextStyle(fontSize: 13),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           side: BorderSide.none,
         ),
         textTheme: const TextTheme(
-          headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-          headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-          headlineSmall: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-          titleLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-          titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
-          bodyLarge: TextStyle(fontSize: 15, color: AppColors.textPrimary),
-          bodyMedium: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-          bodySmall: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          headlineLarge: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary),
+          headlineMedium: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary),
+          headlineSmall: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary),
+          titleLarge: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary),
+          titleMedium: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary),
+          bodyLarge:
+              TextStyle(fontSize: 15, color: AppColors.textPrimary),
+          bodyMedium:
+              TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          bodySmall:
+              TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          labelLarge:
+              TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       );
 }

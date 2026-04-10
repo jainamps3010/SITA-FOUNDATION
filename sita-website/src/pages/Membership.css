@@ -1,0 +1,319 @@
+.hero-tag {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.9);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+
+.benefits-grid {
+  gap: 20px;
+}
+
+.benefit-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+}
+
+.benefit-icon {
+  font-size: 28px;
+  width: 52px;
+  height: 52px;
+  background: #E8EAF6;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.benefit-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.benefit-card p {
+  font-size: 14px;
+  color: var(--text-gray);
+  line-height: 1.6;
+}
+
+/* Fee Section */
+.fee-section {
+  background: var(--bg-light);
+}
+
+.fee-grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.fee-card {
+  background: white;
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: 0 4px 32px rgba(26,35,126,0.15);
+  border: 2px solid #1A237E;
+}
+
+.fee-header {
+  margin-bottom: 24px;
+}
+
+.fee-badge {
+  display: inline-block;
+  background: #E8EAF6;
+  color: #1A237E;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.fee-header h2 {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.fee-amount {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.fee-currency {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1A237E;
+  padding-bottom: 8px;
+}
+
+.fee-num {
+  font-size: 64px;
+  font-weight: 900;
+  color: #1A237E;
+  line-height: 1;
+}
+
+.fee-period {
+  font-size: 18px;
+  color: var(--text-gray);
+  padding-bottom: 10px;
+}
+
+.fee-note {
+  font-size: 13px;
+  color: #e65100;
+  background: #fff3e0;
+  border: 1px solid #ffcc02;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.fee-includes {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.fee-includes li {
+  font-size: 15px;
+  color: var(--text-dark);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+
+.fee-includes li:last-child {
+  border-bottom: none;
+}
+
+/* Join Steps */
+.fee-info h3 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.join-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.join-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.join-num {
+  width: 36px;
+  height: 36px;
+  background: #1A237E;
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.join-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.join-desc {
+  font-size: 14px;
+  color: var(--text-gray);
+}
+
+.eligibility-box {
+  background: #E8EAF6;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #C5CAE9;
+}
+
+.eligibility-box h4 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #0D1757;
+}
+
+.eligibility-box ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.eligibility-box ul li {
+  font-size: 15px;
+  color: var(--text-dark);
+}
+
+.eligibility-note {
+  font-size: 13px;
+  color: var(--text-gray);
+  padding-top: 12px;
+  border-top: 1px dashed #C5CAE9;
+}
+
+/* FAQ */
+.faq-list {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.faq-item.open {
+  box-shadow: 0 4px 16px rgba(26,35,126,0.1);
+  border-color: #1A237E;
+}
+
+.faq-q {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: white;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+  text-align: left;
+  gap: 16px;
+}
+
+.faq-toggle {
+  font-size: 24px;
+  color: #1A237E;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.faq-a {
+  padding: 0 24px 20px;
+  font-size: 15px;
+  color: var(--text-gray);
+  line-height: 1.7;
+  background: white;
+}
+
+.mem-cta {
+  background: linear-gradient(135deg, #1A237E, #FF8F00);
+  border-radius: 24px;
+  padding: 64px;
+  text-align: center;
+  color: white;
+}
+
+.mem-cta h2 {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.mem-cta p {
+  font-size: 18px;
+  opacity: 0.85;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 900px) {
+  .fee-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .benefit-card {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .mem-cta {
+    padding: 40px 24px;
+  }
+  .mem-cta h2 {
+    font-size: 26px;
+  }
+  .fee-num {
+    font-size: 48px;
+  }
+}

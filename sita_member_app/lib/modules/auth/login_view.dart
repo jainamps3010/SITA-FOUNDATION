@@ -16,133 +16,183 @@ class LoginView extends GetView<LoginController> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Header
+              // ── Header ────────────────────────────────────────────
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 48, 24, 40),
+                padding: const EdgeInsets.fromLTRB(24, 52, 24, 44),
                 decoration: const BoxDecoration(
-                  color: AppColors.primary,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF0D1757),
+                      Color(0xFF1A237E),
+                      Color(0xFF283593),
+                    ],
+                  ),
                   borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(32),
-                    bottomRight: Radius.circular(32),
+                    bottomLeft: Radius.circular(36),
+                    bottomRight: Radius.circular(36),
                   ),
                 ),
                 child: Column(
                   children: [
+                    // Logo
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 96,
+                      height: 96,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Text(
-                          'SITA',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
+                      child: ClipOval(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Image.asset(
+                            'assets/logo.png',
+                            height: 80,
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     const Text(
                       'Welcome Back',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     const Text(
                       'Login with your registered mobile number',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                      style: TextStyle(color: Colors.white60, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-              // Form
+
+              // ── Form ──────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
-                    const Text('Mobile Number',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: AppColors.textPrimary)),
+
+                    const Text(
+                      'Mobile Number',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: controller.phoneCtrl,
                       keyboardType: TextInputType.phone,
                       maxLength: 10,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly
+                      ],
                       decoration: const InputDecoration(
                         hintText: 'Enter 10-digit mobile number',
                         prefixText: '+91  ',
                         prefixStyle: TextStyle(
                           color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                         counterText: '',
                       ),
                     ),
-                    const SizedBox(height: 24),
+
+                    const SizedBox(height: 28),
+
+                    // Send OTP button (saffron)
                     Obx(() => ElevatedButton(
-                          onPressed: controller.isLoading.value ? null : controller.sendOtp,
+                          onPressed: controller.isLoading.value
+                              ? null
+                              : controller.sendOtp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.secondary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                           child: controller.isLoading.value
                               ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
+                                  height: 22,
+                                  width: 22,
                                   child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2))
-                              : const Text('Send OTP'),
+                                      color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Text(
+                                  'Send OTP',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700),
+                                ),
                         )),
-                    const SizedBox(height: 16),
+
+                    const SizedBox(height: 14),
+
+                    // Register outline button (blue)
                     OutlinedButton(
                       onPressed: () => Get.toNamed(Routes.register),
-                      child: const Text('New Member? Register Here'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(
+                            color: AppColors.primary, width: 1.5),
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'New Member? Register Here',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
                     ),
-                    const SizedBox(height: 32),
-                    Center(
-                      child: Column(
+
+                    const SizedBox(height: 36),
+
+                    // Info box
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: AppColors.primary.withOpacity(0.2)),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: AppColors.primary.withOpacity(0.15)),
-                            ),
-                            child: const Column(
-                              children: [
-                                Icon(Icons.info_outline,
-                                    color: AppColors.primary, size: 20),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Only pre-approved SITA Foundation\nmembers can login.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12,
-                                      height: 1.5),
-                                ),
-                              ],
+                          Icon(Icons.info_outline,
+                              color: AppColors.primary, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Only pre-approved SITA Foundation members can login. Contact your account manager for access.',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 13,
+                                height: 1.5,
+                              ),
                             ),
                           ),
                         ],

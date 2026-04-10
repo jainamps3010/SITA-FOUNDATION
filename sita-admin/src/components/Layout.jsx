@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import logo from '../assets/logo.png';
 
 const icons = {
   dashboard: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h7v7H3zM14 7h7v7h-7zM3 17h7v4H3zM14 17h7v4h-7z" /></svg>,
@@ -33,6 +34,7 @@ const pageTitles = {
 export default function Layout() {
   const { admin, logout } = useAuth();
   const navigate = useNavigate();
+  const [lang, setLang] = useState('EN');
   const path = window.location.pathname;
   const title = pageTitles[path] || 'SITA Foundation';
 
@@ -45,13 +47,22 @@ export default function Layout() {
     <div className="layout">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <h1>SITA Foundation</h1>
-          <p>B2B Marketplace — Admin</p>
+          <div style={{background:"white", borderRadius:"10px", padding:"8px 12px", display:"inline-block", marginBottom:"8px"}}>
+            <img src={logo} alt="SITA Foundation" style={{height:"60px", width:"auto"}}/>
+          </div>
+          <div className="sidebar-brand-text">
+            <h1>SITA Foundation</h1>
+            <p>Admin Panel</p>
+          </div>
         </div>
         <nav className="sidebar-nav">
           <div className="nav-section">Main Menu</div>
           {navItems.map(item => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+            >
               {icons[item.icon]}
               {item.label}
             </NavLink>
@@ -59,18 +70,37 @@ export default function Layout() {
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <strong>{admin?.name}</strong>
+            <strong>{admin?.name || 'Admin'}</strong>
             {admin?.email}
           </div>
-          <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} onClick={handleLogout}>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ width: '100%', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.15)' }}
+            onClick={handleLogout}
+          >
             {icons.logout} Sign Out
           </button>
         </div>
       </aside>
+
       <main className="main-content">
         <div className="topbar">
           <h2>{title}</h2>
-          <span className="text-muted">{new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}</span>
+          <div className="topbar-right">
+            <div className="lang-toggle">
+              <button
+                className={`lang-btn ${lang === 'EN' ? 'active' : ''}`}
+                onClick={() => setLang('EN')}
+              >EN</button>
+              <button
+                className={`lang-btn ${lang === 'GU' ? 'active' : ''}`}
+                onClick={() => setLang('GU')}
+              >GU</button>
+            </div>
+            <span className="text-muted">
+              {new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}
+            </span>
+          </div>
         </div>
         <div className="page-content">
           <Outlet />

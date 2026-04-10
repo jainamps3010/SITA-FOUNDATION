@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import logo from '../assets/logo.png';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('admin@sita.org');
@@ -30,6 +31,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
+          <img src={logo} height="50" alt="SITA Foundation" />
           <h1>SITA Foundation</h1>
           <p>B2B Marketplace Admin Panel</p>
         </div>
