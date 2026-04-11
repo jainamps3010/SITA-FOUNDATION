@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import logo from '../assets/logo.png';
-
 export default function LoginPage() {
   const [email, setEmail] = useState('admin@sita.org');
   const [password, setPassword] = useState('admin123');
@@ -31,7 +29,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <img src={logo} height="50" alt="SITA Foundation" />
+          <img src="/logo.png" style={{width:'200px', objectFit:'contain', marginBottom:'20px'}}/>
           <h1>SITA Foundation</h1>
           <p>B2B Marketplace Admin Panel</p>
         </div>
@@ -57,9 +55,6 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: '#6b7280' }}>
-          Default: admin@sita.org / admin123
-        </p>
       </div>
     </div>
   );

@@ -162,6 +162,16 @@ router.post('/members/:id/wallet/credit', [
   } catch (err) { await t.rollback(); next(err); }
 });
 
+// DELETE /admin/members/:id
+router.delete('/members/:id', async (req, res, next) => {
+  try {
+    const member = await Member.findByPk(req.params.id);
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    await member.destroy();
+    res.json({ success: true, message: 'Member deleted' });
+  } catch (err) { next(err); }
+});
+
 // ─── VENDORS ──────────────────────────────────────────────────────────────────
 
 // GET /admin/vendors
@@ -233,6 +243,16 @@ router.post('/vendors', [
   } catch (err) { next(err); }
 });
 
+// DELETE /admin/vendors/:id
+router.delete('/vendors/:id', async (req, res, next) => {
+  try {
+    const vendor = await Vendor.findByPk(req.params.id);
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found' });
+    await vendor.destroy();
+    res.json({ success: true, message: 'Vendor deleted' });
+  } catch (err) { next(err); }
+});
+
 // ─── PRODUCTS ──────────────────────────────────────────────────────────────────
 
 // GET /admin/products
@@ -271,6 +291,16 @@ router.put('/products/:id/reject', async (req, res, next) => {
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     await product.update({ approved: false, available: false });
     res.json({ success: true, message: 'Product rejected', product });
+  } catch (err) { next(err); }
+});
+
+// DELETE /admin/products/:id
+router.delete('/products/:id', async (req, res, next) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    await product.destroy();
+    res.json({ success: true, message: 'Product deleted' });
   } catch (err) { next(err); }
 });
 
@@ -337,6 +367,17 @@ router.put('/orders/:id/status', [
 
     await order.update(updates);
     res.json({ success: true, message: 'Order status updated', order });
+  } catch (err) { next(err); }
+});
+
+// DELETE /admin/orders/:id
+router.delete('/orders/:id', async (req, res, next) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    await OrderItem.destroy({ where: { order_id: order.id } });
+    await order.destroy();
+    res.json({ success: true, message: 'Order deleted' });
   } catch (err) { next(err); }
 });
 

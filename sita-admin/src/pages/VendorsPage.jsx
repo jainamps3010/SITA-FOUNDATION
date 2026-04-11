@@ -57,6 +57,15 @@ export default function VendorsPage() {
     finally { setActionLoading(false); }
   };
 
+  const removeVendor = async (id, name) => {
+    if (!window.confirm(`Remove vendor "${name}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/admin/vendors/${id}`);
+      setMsg({ type: 'success', text: 'Vendor removed' });
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed to remove' }); }
+  };
+
   const addVendor = async () => {
     setActionLoading(true);
     try {
@@ -120,6 +129,7 @@ export default function VendorsPage() {
                             <button className="btn btn-danger btn-sm" onClick={() => { setSelected(v); setModal('reject'); }}>Reject</button>
                           </>
                         )}
+                        <button className="btn btn-danger btn-sm" onClick={() => removeVendor(v.id, v.company_name)}>Remove</button>
                       </div>
                     </td>
                   </tr>

@@ -31,12 +31,21 @@ export default function ProductsPage() {
   };
 
   const reject = async (id) => {
-    if (!confirm('Reject this product?')) return;
+    if (!window.confirm('Reject this product?')) return;
     try {
       await api.put(`/admin/products/${id}/reject`);
       setMsg({ type: 'success', text: 'Product rejected' });
       load();
     } catch (e) { setMsg({ type: 'error', text: 'Failed to reject' }); }
+  };
+
+  const removeProduct = async (id, name) => {
+    if (!window.confirm(`Remove product "${name}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/admin/products/${id}`);
+      setMsg({ type: 'success', text: 'Product removed' });
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed to remove' }); }
   };
 
   return (
@@ -84,6 +93,7 @@ export default function ProductsPage() {
                       <div style={{ display: 'flex', gap: '6px' }}>
                         {!p.approved && <button className="btn btn-success btn-sm" onClick={() => approve(p.id)}>Approve</button>}
                         {p.approved && <button className="btn btn-danger btn-sm" onClick={() => reject(p.id)}>Reject</button>}
+                        <button className="btn btn-danger btn-sm" onClick={() => removeProduct(p.id, p.name)}>Remove</button>
                       </div>
                     </td>
                   </tr>

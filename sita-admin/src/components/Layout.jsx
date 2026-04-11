@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import logo from '../assets/logo.png';
+
 
 const icons = {
   dashboard: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h7v7H3zM14 7h7v7h-7zM3 17h7v4H3zM14 17h7v4h-7z" /></svg>,
@@ -47,8 +47,8 @@ export default function Layout() {
     <div className="layout">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div style={{background:"white", borderRadius:"10px", padding:"8px 12px", display:"inline-block", marginBottom:"8px"}}>
-            <img src={logo} alt="SITA Foundation" style={{height:"60px", width:"auto"}}/>
+          <div style={{margin:'8px', overflow:'hidden', height:'80px', display:'flex', alignItems:'center', justifyContent:'center', background:'white', borderRadius:'8px'}}>
+            <img src="/logo.png" style={{width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 30%'}}/>
           </div>
           <div className="sidebar-brand-text">
             <h1>SITA Foundation</h1>
@@ -75,7 +75,7 @@ export default function Layout() {
           </div>
           <button
             className="btn btn-ghost btn-sm"
-            style={{ width: '100%', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.15)' }}
+            style={{ width: '100%', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.15)', fontSize: '12px', padding: '4px 8px' }}
             onClick={handleLogout}
           >
             {icons.logout} Sign Out
@@ -93,8 +93,9 @@ export default function Layout() {
                 onClick={() => setLang('EN')}
               >EN</button>
               <button
-                className={`lang-btn ${lang === 'GU' ? 'active' : ''}`}
-                onClick={() => setLang('GU')}
+                className="lang-btn"
+                title="Gujarati translation coming soon"
+                style={{ opacity: 0.45, cursor: 'not-allowed' }}
               >GU</button>
             </div>
             <span className="text-muted">

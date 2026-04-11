@@ -58,6 +58,15 @@ export default function MembersPage() {
     finally { setActionLoading(false); }
   };
 
+  const removeMember = async (id, name) => {
+    if (!window.confirm(`Remove member "${name}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/admin/members/${id}`);
+      setMsg({ type: 'success', text: 'Member removed' });
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed to remove' }); }
+  };
+
   const creditWallet = async () => {
     setActionLoading(true);
     try {
@@ -118,6 +127,7 @@ export default function MembersPage() {
                             <button className="btn btn-danger btn-sm" onClick={() => { setSelected(m); setModal('reject'); }}>Reject</button>
                           </>
                         )}
+                        <button className="btn btn-danger btn-sm" onClick={() => removeMember(m.id, m.name)}>Remove</button>
                       </div>
                     </td>
                   </tr>

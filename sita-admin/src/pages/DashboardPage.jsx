@@ -5,13 +5,25 @@ import { statusBadge, formatCurrency, formatDate } from '../components/utils';
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recentOrders, setRecentOrders] = useState([]);
 
   useEffect(() => {
     api.get('/admin/dashboard/stats')
-      .then(r => setStats(r.data))
+      .then(r => {
+        setStats(r.data);
+        setRecentOrders(r.data.recent_orders || r.data.stats?.recent_orders || []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const deleteOrder = async (id) => {
+    if (!window.confirm('Delete this order? This cannot be undone.')) return;
+    try {
+      await api.delete(`/admin/orders/${id}`);
+      setRecentOrders(prev => prev.filter(o => o.id !== id));
+    } catch (e) { alert(e.response?.data?.message || 'Failed to delete order'); }
+  };
 
   if (loading) return <div className="loading"><div className="spinner" /></div>;
   if (!stats) return <div className="alert alert-error">Failed to load dashboard</div>;
@@ -87,13 +99,14 @@ export default function DashboardPage() {
                 <th>Amount</th>
                 <th>Status</th>
                 <th>Date</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {(stats.recent_orders || []).length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9ca3af', padding: '32px' }}>No orders yet</td></tr>
+              {recentOrders.length === 0 && (
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: '#9ca3af', padding: '32px' }}>No orders yet</td></tr>
               )}
-              {(stats.recent_orders || []).map(o => (
+              {recentOrders.map(o => (
                 <tr key={o.id}>
                   <td><strong>{o.order_number}</strong></td>
                   <td>
@@ -104,6 +117,9 @@ export default function DashboardPage() {
                   <td>{formatCurrency(o.total_amount)}</td>
                   <td>{statusBadge(o.status)}</td>
                   <td className="text-muted">{formatDate(o.created_at)}</td>
+                  <td>
+                    <button className="btn btn-danger btn-sm" onClick={() => deleteOrder(o.id)}>Delete</button>
+                  </td>
                 </tr>
               ))}
             </tbody>

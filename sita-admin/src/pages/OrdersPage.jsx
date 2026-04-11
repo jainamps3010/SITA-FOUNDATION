@@ -33,6 +33,15 @@ export default function OrdersPage() {
     setModal('detail');
   };
 
+  const removeOrder = async (id, orderNumber) => {
+    if (!window.confirm(`Remove order "${orderNumber}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/admin/orders/${id}`);
+      setMsg({ type: 'success', text: 'Order removed' });
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed to remove' }); }
+  };
+
   const updateStatus = async () => {
     setActionLoading(true);
     try {
@@ -86,7 +95,10 @@ export default function OrdersPage() {
                     <td>{statusBadge(o.status)}</td>
                     <td className="text-muted">{formatDate(o.created_at)}</td>
                     <td>
-                      <button className="btn btn-ghost btn-sm" onClick={() => openDetail(o)}>View</button>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => openDetail(o)}>View</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => removeOrder(o.id, o.order_number)}>Remove</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
