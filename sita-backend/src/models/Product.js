@@ -24,7 +24,8 @@ module.exports = (sequelize) => {
     category: {
       type: DataTypes.ENUM(
         'food_beverages', 'housekeeping', 'linen_laundry',
-        'amenities', 'equipment', 'technology', 'furniture', 'other'
+        'amenities', 'equipment', 'technology', 'furniture', 'other',
+        'oils', 'grains', 'spices', 'gas', 'cleaning_supplies'
       ),
       allowNull: false
     },
@@ -33,14 +34,25 @@ module.exports = (sequelize) => {
       allowNull: false,
       comment: 'e.g. kg, litre, piece, dozen, carton'
     },
+    market_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: 'Original market / MRP price'
+    },
     price_per_unit: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: false
+      allowNull: false,
+      comment: 'SITA special price shown to members'
     },
     moq: {
       type: DataTypes.INTEGER,
       defaultValue: 1,
       comment: 'Minimum order quantity'
+    },
+    stock_quantity: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      comment: 'Current available stock'
     },
     available: {
       type: DataTypes.BOOLEAN,

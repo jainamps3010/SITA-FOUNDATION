@@ -222,6 +222,8 @@ tr:hover td { background: #F8F9FF; }
 .btn-danger:hover { background: #B71C1C; }
 .btn-ghost { background: transparent; color: var(--gray-600); border: 1.5px solid var(--gray-200); }
 .btn-ghost:hover { background: var(--gray-50); border-color: var(--gray-300); }
+.btn-warning { background: var(--warning); color: white; }
+.btn-warning:hover { background: #E65100; }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 

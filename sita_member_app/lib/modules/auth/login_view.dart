@@ -59,6 +59,9 @@ class LoginView extends GetView<LoginController> {
                             'assets/logo.png',
                             height: 80,
                             fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.store,
+                                    size: 56, color: Color(0xFF1A237E)),
                           ),
                         ),
                       ),

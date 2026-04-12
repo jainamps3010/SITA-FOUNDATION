@@ -274,6 +274,68 @@ router.get('/products', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /admin/products — create a new product
+router.post('/products', [
+  body('name').trim().notEmpty().withMessage('Product name is required'),
+  body('vendor_id').isUUID().withMessage('Valid vendor ID is required'),
+  body('category').notEmpty().withMessage('Category is required'),
+  body('unit').trim().notEmpty().withMessage('Unit is required'),
+  body('price_per_unit').isFloat({ gt: 0 }).withMessage('SITA price must be > 0'),
+  body('market_price').optional({ nullable: true }).isFloat({ gt: 0 }),
+  body('moq').optional().isInt({ min: 1 }),
+  body('stock_quantity').optional().isInt({ min: 0 }),
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+  try {
+    const vendor = await Vendor.findByPk(req.body.vendor_id);
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found' });
+
+    const product = await Product.create({
+      vendor_id:      req.body.vendor_id,
+      name:           req.body.name.trim(),
+      description:    req.body.description?.trim() || null,
+      category:       req.body.category,
+      unit:           req.body.unit.trim(),
+      market_price:   req.body.market_price   ? parseFloat(req.body.market_price)   : null,
+      price_per_unit: parseFloat(req.body.price_per_unit),
+      moq:            req.body.moq            ? parseInt(req.body.moq)            : 1,
+      stock_quantity: req.body.stock_quantity ? parseInt(req.body.stock_quantity) : 0,
+      sku:            req.body.sku?.trim()    || null,
+      approved:       false,
+      available:      true,
+    });
+    res.status(201).json({ success: true, message: 'Product created', product });
+  } catch (err) { next(err); }
+});
+
+// PUT /admin/products/:id — edit an existing product
+router.put('/products/:id', [
+  body('name').optional().trim().notEmpty(),
+  body('category').optional().notEmpty(),
+  body('unit').optional().trim().notEmpty(),
+  body('price_per_unit').optional().isFloat({ gt: 0 }),
+  body('market_price').optional({ nullable: true }).isFloat({ gt: 0 }),
+  body('moq').optional().isInt({ min: 1 }),
+  body('stock_quantity').optional().isInt({ min: 0 }),
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    const updates = {};
+    const fields = ['name', 'description', 'category', 'unit', 'price_per_unit',
+                    'market_price', 'moq', 'stock_quantity', 'sku'];
+    for (const f of fields) {
+      if (req.body[f] !== undefined) updates[f] = req.body[f];
+    }
+    await product.update(updates);
+    res.json({ success: true, message: 'Product updated', product });
+  } catch (err) { next(err); }
+});
+
 // PUT /admin/products/:id/approve
 router.put('/products/:id/approve', async (req, res, next) => {
   try {
