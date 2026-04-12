@@ -15,10 +15,13 @@ const generateDeliveryOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const calculateSplit = (amount) => {
+// memberTotal: sum of sita_price * qty (what member pays)
+// marketTotal: sum of market_price * qty (used for 2% foundation fee basis)
+const calculateSplit = (memberTotal, marketTotal) => {
   const commissionPercent = parseFloat(process.env.SITA_COMMISSION_PERCENT) || 2;
-  const sita_commission = parseFloat((amount * commissionPercent / 100).toFixed(2));
-  const vendor_amount = parseFloat((amount - sita_commission).toFixed(2));
+  // Foundation fee is 2% of market value, not SITA price
+  const sita_commission = parseFloat((marketTotal * commissionPercent / 100).toFixed(2));
+  const vendor_amount = parseFloat((memberTotal - sita_commission).toFixed(2));
   return { sita_commission, vendor_amount };
 };
 

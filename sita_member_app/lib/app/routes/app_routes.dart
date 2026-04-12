@@ -4,6 +4,7 @@ abstract class Routes {
   static const otpVerify = '/otp-verify';
   static const register = '/register';
   static const kyc = '/kyc';
+  static const membershipPayment = '/membership-payment';
   static const home = '/home';
   static const marketplace = '/marketplace';
   static const productDetail = '/product-detail';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
+import '../../data/models/member_model.dart';
 import '../../app/routes/app_routes.dart';
 
 class LoginController extends GetxController {
@@ -74,7 +75,13 @@ class LoginController extends GetxController {
       final memberData = res['member'] as Map<String, dynamic>;
       await StorageService.to.saveToken(token);
       await StorageService.to.saveMember(memberData);
-      Get.offAllNamed(Routes.home);
+      final member = Member.fromJson(memberData);
+      // If KYC approved (active) but membership not paid, go to payment screen
+      if (member.isActive && !member.membershipPaid) {
+        Get.offAllNamed(Routes.membershipPayment);
+      } else {
+        Get.offAllNamed(Routes.home);
+      }
     } on ApiException catch (e) {
       Get.snackbar('Error', e.message,
           snackPosition: SnackPosition.BOTTOM,

@@ -68,6 +68,7 @@ router.get('/members', async (req, res, next) => {
     const { page, limit, offset } = paginate(req.query);
     const where = {};
     if (req.query.status) where.status = req.query.status;
+    if (req.query.membership_paid !== undefined) where.membership_paid = req.query.membership_paid === 'true';
     if (req.query.search) {
       where[Op.or] = [
         { name: { [Op.iLike]: `%${req.query.search}%` } },
@@ -160,6 +161,18 @@ router.post('/members/:id/wallet/credit', [
     await t.commit();
     res.json({ success: true, message: `₹${amount} credited to wallet`, new_balance: newBalance });
   } catch (err) { await t.rollback(); next(err); }
+});
+
+// PUT /admin/members/:id/membership/mark-paid
+router.put('/members/:id/membership/mark-paid', async (req, res, next) => {
+  try {
+    const member = await Member.findByPk(req.params.id);
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (member.membership_paid) return res.status(400).json({ success: false, message: 'Membership already paid' });
+    const membershipFee = parseFloat(process.env.MEMBERSHIP_FEE) || 5000;
+    await member.update({ membership_paid: true, membership_fee: membershipFee, membership_paid_at: new Date() });
+    res.json({ success: true, message: 'Membership marked as paid', member });
+  } catch (err) { next(err); }
 });
 
 // DELETE /admin/members/:id

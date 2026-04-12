@@ -13,6 +13,11 @@ class ProfileView extends GetView<ProfileController> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('My Profile'),
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.back(),
+        ),
         actions: [
           Obx(() => controller.isSaving.value
               ? const Padding(

@@ -35,12 +35,12 @@ module.exports = (sequelize) => {
     sita_commission: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
-      comment: '2% of total_amount'
+      comment: '2% of market value (sum of market_price * qty)'
     },
     vendor_amount: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
-      comment: '98% of total_amount'
+      comment: 'member_total - sita_commission'
     },
     payment_method: {
       type: DataTypes.ENUM('wallet', 'bank_transfer', 'upi', 'cash'),

@@ -16,6 +16,11 @@ class MarketplaceView extends GetView<MarketplaceController> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Marketplace'),
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.back(),
+        ),
         actions: [
           Obx(() {
             final count = Get.find<CartController>().count;

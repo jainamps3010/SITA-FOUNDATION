@@ -20,6 +20,8 @@ import '../../modules/wallet/wallet_binding.dart';
 import '../../modules/wallet/wallet_view.dart';
 import '../../modules/profile/profile_binding.dart';
 import '../../modules/profile/profile_view.dart';
+import '../../modules/membership/membership_payment_binding.dart';
+import '../../modules/membership/membership_payment_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -43,6 +45,11 @@ class AppPages {
       name: Routes.register,
       page: () => const RegisterView(),
       binding: LoginBinding(),
+    ),
+    GetPage(
+      name: Routes.membershipPayment,
+      page: () => const MembershipPaymentView(),
+      binding: MembershipPaymentBinding(),
     ),
     GetPage(
       name: Routes.home,

@@ -102,16 +102,19 @@ class CartView extends GetView<CartController> {
                         const SizedBox(height: 12),
                         Obx(() => Column(
                               children: [
-                                _billRow('Subtotal',
-                                    '₹${controller.subtotal.toStringAsFixed(2)}'),
+                                _billRow(
+                                  'Items Subtotal',
+                                  '₹${controller.subtotal.toStringAsFixed(2)}',
+                                  note: 'At SITA special prices',
+                                ),
                                 _billRow(
                                   'Foundation Fee (2%)',
                                   '₹${controller.foundationFee.toStringAsFixed(2)}',
-                                  note: 'Non-refundable',
+                                  note: '2% of market value — non-refundable',
                                 ),
                                 const Divider(height: 16),
                                 _billRow(
-                                  'Total',
+                                  'Total Payable',
                                   '₹${controller.total.toStringAsFixed(2)}',
                                   bold: true,
                                 ),

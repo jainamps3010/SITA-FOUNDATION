@@ -15,6 +15,11 @@ class ProductDetailView extends GetView<ProductDetailController> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Obx(() => Text(controller.product.value?.name ?? 'Product')),
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.back(),
+        ),
         actions: [
           Obx(() {
             final count = Get.find<CartController>().count;

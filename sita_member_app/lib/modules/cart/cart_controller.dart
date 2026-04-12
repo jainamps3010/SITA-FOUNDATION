@@ -11,6 +11,8 @@ class CartItem {
   CartItem({required this.product, required this.quantity});
 
   double get total => product.pricePerUnit * quantity;
+  // Market value for foundation fee basis; fallback to SITA price if not set
+  double get marketTotal => (product.marketPrice ?? product.pricePerUnit) * quantity;
 }
 
 class CartController extends GetxController {
@@ -23,7 +25,9 @@ class CartController extends GetxController {
   static const double foundationFeePercent = 0.02;
 
   double get subtotal => items.fold(0.0, (sum, i) => sum + i.total);
-  double get foundationFee => subtotal * foundationFeePercent;
+  // Foundation fee = 2% of total market value (not SITA price)
+  double get marketValueTotal => items.fold(0.0, (sum, i) => sum + i.marketTotal);
+  double get foundationFee => marketValueTotal * foundationFeePercent;
   double get total => subtotal + foundationFee;
   int get count => items.fold(0, (sum, i) => sum + i.quantity);
 

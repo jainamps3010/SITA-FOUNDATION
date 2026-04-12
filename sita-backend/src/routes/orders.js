@@ -49,6 +49,7 @@ router.post('/', authenticateMember, requireMembership, [
     products.forEach(p => { productMap[p.id] = p; });
 
     let total_amount = 0;
+    let market_total = 0;
     const orderItemsData = [];
 
     for (const item of items) {
@@ -61,7 +62,11 @@ router.post('/', authenticateMember, requireMembership, [
         });
       }
       const item_total = parseFloat((product.price_per_unit * item.quantity).toFixed(2));
+      // Use market_price for foundation fee basis; fall back to sita price if not set
+      const market_price = parseFloat(product.market_price || product.price_per_unit);
+      const item_market_total = parseFloat((market_price * item.quantity).toFixed(2));
       total_amount += item_total;
+      market_total += item_market_total;
       orderItemsData.push({
         product_id: product.id,
         quantity: item.quantity,
@@ -73,7 +78,9 @@ router.post('/', authenticateMember, requireMembership, [
     }
 
     total_amount = parseFloat(total_amount.toFixed(2));
-    const { sita_commission, vendor_amount } = calculateSplit(total_amount);
+    market_total = parseFloat(market_total.toFixed(2));
+    // Foundation fee = 2% of market value, vendor gets member_total - foundation_fee
+    const { sita_commission, vendor_amount } = calculateSplit(total_amount, market_total);
 
     // Handle wallet payment
     let wallet_amount_used = 0;

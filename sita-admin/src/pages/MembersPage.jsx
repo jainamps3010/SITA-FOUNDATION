@@ -8,6 +8,7 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [membershipFilter, setMembershipFilter] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null); // 'detail' | 'reject' | 'wallet'
@@ -22,13 +23,14 @@ export default function MembersPage() {
     const params = { page, limit: 20 };
     if (search) params.search = search;
     if (statusFilter) params.status = statusFilter;
+    if (membershipFilter !== '') params.membership_paid = membershipFilter;
     api.get('/admin/members', { params })
       .then(r => { setMembers(r.data.data); setPagination(r.data.pagination); })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [page, statusFilter]);
+  useEffect(() => { load(); }, [page, statusFilter, membershipFilter]);
   useEffect(() => { const t = setTimeout(load, 400); return () => clearTimeout(t); }, [search]);
 
   const openDetail = async (member) => {
@@ -67,6 +69,21 @@ export default function MembersPage() {
     } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed to remove' }); }
   };
 
+  const markMembershipPaid = async (member) => {
+    if (!window.confirm(`Mark membership as paid for "${member.name}"? This will charge ₹5,000 and cannot be undone.`)) return;
+    setActionLoading(true);
+    try {
+      await api.put(`/admin/members/${member.id}/membership/mark-paid`);
+      setMsg({ type: 'success', text: 'Membership marked as paid' });
+      if (modal === 'detail') {
+        const r = await api.get(`/admin/members/${member.id}`);
+        setSelected(r.data.member);
+      }
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed' }); }
+    finally { setActionLoading(false); }
+  };
+
   const creditWallet = async () => {
     setActionLoading(true);
     try {
@@ -94,6 +111,11 @@ export default function MembersPage() {
               <option value="active">Active</option>
               <option value="rejected">Rejected</option>
               <option value="suspended">Suspended</option>
+            </select>
+            <select className="filter-select" value={membershipFilter} onChange={e => { setMembershipFilter(e.target.value); setPage(1); }}>
+              <option value="">All Membership</option>
+              <option value="true">Paid</option>
+              <option value="false">Unpaid</option>
             </select>
           </div>
         </div>
@@ -158,7 +180,14 @@ export default function MembersPage() {
                 <div className="detail-item"><label>City</label><span>{selected.city || '—'}</span></div>
                 <div className="detail-item"><label>State</label><span>{selected.state || '—'}</span></div>
                 <div className="detail-item"><label>GSTIN</label><span>{selected.gstin || '—'}</span></div>
-                <div className="detail-item"><label>Membership</label><span>{selected.membership_paid ? '✅ Paid' : '❌ Unpaid'}</span></div>
+                <div className="detail-item">
+                  <label>Membership</label>
+                  <span>
+                    {selected.membership_paid
+                      ? <>✅ Paid {selected.membership_paid_at && <span style={{ color: '#6b7280', fontSize: '12px' }}>on {formatDate(selected.membership_paid_at)}</span>}</>
+                      : '❌ Unpaid'}
+                  </span>
+                </div>
                 <div className="detail-item"><label>Wallet Balance</label><span>{formatCurrency(selected.sita_wallet_balance)}</span></div>
                 <div className="detail-item"><label>Joined</label><span>{formatDate(selected.created_at)}</span></div>
               </div>
@@ -174,6 +203,9 @@ export default function MembersPage() {
                   <button className="btn btn-success" onClick={() => approve(selected.id)} disabled={actionLoading}>Approve</button>
                   <button className="btn btn-danger" onClick={() => setModal('reject')} disabled={actionLoading}>Reject</button>
                 </>
+              )}
+              {!selected.membership_paid && (
+                <button className="btn btn-success" onClick={() => markMembershipPaid(selected)} disabled={actionLoading}>Mark Membership Paid</button>
               )}
               <button className="btn btn-ghost" onClick={() => setModal('wallet')}>Credit Wallet</button>
               <button className="btn btn-ghost" onClick={() => setModal(null)}>Close</button>
