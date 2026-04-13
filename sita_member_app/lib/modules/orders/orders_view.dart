@@ -91,87 +91,108 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat('dd MMM yyyy, hh:mm a');
-    return GestureDetector(
-      onTap: () {
-        final ctrl = Get.find<OrdersController>();
-        ctrl.fetchOrderDetail(order.id);
-        Get.toNamed(Routes.orderDetail, arguments: order);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  order.orderNumber,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: AppColors.textPrimary),
-                ),
-                StatusBadge(status: order.status),
-              ],
-            ),
-            const SizedBox(height: 6),
-            if (order.vendor != null)
-              Text(order.vendor!.companyName,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.access_time_outlined,
-                    color: AppColors.textSecondary, size: 14),
-                const SizedBox(width: 4),
-                Text(fmt.format(order.createdAt),
+    final ctrl = Get.find<OrdersController>();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          ctrl.fetchOrderDetail(order.id);
+          Get.toNamed(Routes.orderDetail, arguments: order);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    order.orderNumber,
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            const Divider(height: 1),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${order.items.length} item${order.items.length > 1 ? 's' : ''}',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: AppColors.textPrimary),
+                  ),
+                  StatusBadge(status: order.status),
+                ],
+              ),
+              const SizedBox(height: 6),
+              if (order.vendor != null)
+                Text(order.vendor!.companyName,
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 13)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.access_time_outlined,
+                      color: AppColors.textSecondary, size: 14),
+                  const SizedBox(width: 4),
+                  Text(fmt.format(order.createdAt),
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
+                          color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Divider(height: 1),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${order.items.length} item${order.items.length > 1 ? 's' : ''}',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                      Text(
+                        order.items.map((i) => i.productName).take(2).join(', ') +
+                            (order.items.length > 2
+                                ? ' +${order.items.length - 2} more'
+                                : ''),
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '₹${order.totalAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16),
+                  ),
+                ],
+              ),
+              if (['pending', 'dispatched'].contains(order.status)) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => ctrl.showCancelDialog(context, order),
+                    icon: const Icon(Icons.cancel_outlined,
+                        color: Colors.red, size: 16),
+                    label: const Text('Cancel Order',
+                        style: TextStyle(color: Colors.red, fontSize: 13)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      minimumSize: const Size(0, 36),
                     ),
-                    Text(
-                      order.items.map((i) => i.productName).take(2).join(', ') +
-                          (order.items.length > 2
-                              ? ' +${order.items.length - 2} more'
-                              : ''),
-                      style: const TextStyle(fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-                Text(
-                  '₹${order.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16),
+                  ),
                 ),
               ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

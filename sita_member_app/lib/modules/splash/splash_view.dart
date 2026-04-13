@@ -89,9 +89,13 @@ class _SplashViewState extends State<SplashView>
                             'assets/logo.png',
                             height: 120,
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.store,
-                                    size: 80, color: Color(0xFF1A237E)),
+                            errorBuilder: (c, e, s) => const Text(
+                              'SITA Foundation',
+                              style: TextStyle(
+                                  color: Color(0xFF1A237E),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ),

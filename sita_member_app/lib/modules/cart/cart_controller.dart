@@ -100,7 +100,7 @@ class CartController extends GetxController {
         });
       }
       clear();
-      Get.offAllNamed(Routes.orders);
+      Get.offAllNamed(Routes.home);
       Get.snackbar('Order Placed', 'Your order has been placed successfully!',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green.shade50,

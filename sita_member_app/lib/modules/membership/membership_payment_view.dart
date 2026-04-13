@@ -33,18 +33,13 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
                 'assets/logo.png',
                 height: 80,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 80,
-                    width: 80,
-                    decoration: BoxDecoration(
+                errorBuilder: (c, e, s) => const Text(
+                  'SITA Foundation',
+                  style: TextStyle(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.store,
-                        size: 50, color: Color(0xFF1A237E)),
-                  );
-                },
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold),
+                ),
               ),
 
               const SizedBox(height: 28),

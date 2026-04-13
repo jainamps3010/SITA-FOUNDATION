@@ -14,6 +14,10 @@ class OtpVerifyView extends GetView<LoginController> {
       appBar: AppBar(
         title: const Text('Verify OTP'),
         backgroundColor: AppColors.primary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -52,25 +56,6 @@ class OtpVerifyView extends GetView<LoginController> {
                           style: const TextStyle(
                               color: AppColors.textSecondary, fontSize: 14, height: 1.5),
                         ),
-                        if (controller.devOtp != null) ...[
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Text(
-                              'DEV OTP: ${controller.devOtp}',
-                              style: TextStyle(
-                                  color: Colors.orange.shade800,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13),
-                            ),
-                          ),
-                        ],
                       ],
                     )),
               ),
@@ -98,25 +83,16 @@ class OtpVerifyView extends GetView<LoginController> {
                     enabled: !controller.isLoading.value,
                   )),
               const SizedBox(height: 24),
-              Obx(() => ElevatedButton(
-                    onPressed: controller.isLoading.value ? null : null,
-                    child: controller.isLoading.value
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2))
-                        : const Text('Verifying...'),
-                  )),
               const SizedBox(height: 16),
               Center(
-                child: TextButton(
-                  onPressed: controller.isLoading.value ? null : controller.sendOtp,
-                  child: const Text(
-                    'Resend OTP',
-                    style: TextStyle(color: AppColors.primary),
-                  ),
-                ),
+                child: Obx(() => TextButton(
+                      onPressed:
+                          controller.isLoading.value ? null : controller.sendOtp,
+                      child: const Text(
+                        'Resend OTP',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                    )),
               ),
             ],
           ),

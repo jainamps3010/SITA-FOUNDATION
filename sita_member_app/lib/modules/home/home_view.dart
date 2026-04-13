@@ -49,20 +49,15 @@ class HomeView extends GetView<HomeController> {
           Center(
             child: Image.asset(
               'assets/logo.png',
-              height: 48,
+              height: 80,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 48,
-                  width: 48,
-                  decoration: BoxDecoration(
+              errorBuilder: (c, e, s) => const Text(
+                'SITA Foundation',
+                style: TextStyle(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.store,
-                      size: 32, color: Color(0xFF1A237E)),
-                );
-              },
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           const SizedBox(height: 12),

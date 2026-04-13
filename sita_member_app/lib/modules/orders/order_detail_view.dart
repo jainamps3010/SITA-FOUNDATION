@@ -29,6 +29,37 @@ class OrderDetailView extends GetView<OrdersController> {
               // Status tracker
               _buildStatusTracker(order.status),
               const SizedBox(height: 16),
+              // Cancel button for pending/dispatched
+              if (['pending', 'dispatched'].contains(order.status))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Obx(() => SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: controller.isCancelling.value
+                              ? null
+                              : () => controller.showCancelDialog(context, order),
+                          icon: controller.isCancelling.value
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.red))
+                              : const Icon(Icons.cancel_outlined,
+                                  color: Colors.red),
+                          label: Text(
+                            controller.isCancelling.value
+                                ? 'Cancelling...'
+                                : 'Cancel Order',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      )),
+                ),
               // Order info
               _section('Order Information', [
                 _row('Order Number', order.orderNumber),
