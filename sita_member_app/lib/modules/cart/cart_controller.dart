@@ -29,7 +29,7 @@ class CartController extends GetxController {
   double get marketValueTotal => items.fold(0.0, (sum, i) => sum + i.marketTotal);
   double get foundationFee => marketValueTotal * foundationFeePercent;
   double get total => subtotal + foundationFee;
-  int get count => items.fold(0, (sum, i) => sum + i.quantity);
+  int get count => items.length;
 
   void addItem(Product product, int qty) {
     final existing = items.indexWhere((i) => i.product.id == product.id);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../app/theme/app_theme.dart';
 
 class SitaAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -20,9 +19,11 @@ class SitaAppBar extends StatelessWidget implements PreferredSizeWidget {
         actions: actions,
         automaticallyImplyLeading: false,
         leading: showBack
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Get.back(),
+            ? Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               )
             : null,
       );

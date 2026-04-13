@@ -1,9 +1,8 @@
 import 'package:get/get.dart';
-import 'cart_controller.dart';
 
 class CartBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<CartController>(() => CartController());
+    // CartController is permanently registered in main.dart — no re-registration needed
   }
 }

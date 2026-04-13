@@ -38,33 +38,22 @@ class LoginView extends GetView<LoginController> {
                 child: Column(
                   children: [
                     // Logo
-                    Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                    Image.asset(
+                      'assets/logo.png',
+                      height: 80,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 80,
+                          width: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Image.asset(
-                            'assets/logo.png',
-                            height: 80,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.store,
-                                    size: 56, color: Color(0xFF1A237E)),
-                          ),
-                        ),
-                      ),
+                          child: const Icon(Icons.store,
+                              size: 50, color: Color(0xFF1A237E)),
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
                     const Text(

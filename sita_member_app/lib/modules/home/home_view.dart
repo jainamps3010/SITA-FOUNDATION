@@ -45,6 +45,27 @@ class HomeView extends GetView<HomeController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // SITA logo
+          Center(
+            child: Image.asset(
+              'assets/logo.png',
+              height: 48,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 48,
+                  width: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.store,
+                      size: 32, color: Color(0xFF1A237E)),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(

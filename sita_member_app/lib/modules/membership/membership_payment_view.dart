@@ -10,6 +10,16 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('Membership'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -19,34 +29,22 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
               const SizedBox(height: 32),
 
               // Logo
-              Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.18),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
+              Image.asset(
+                'assets/logo.png',
+                height: 80,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 80,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Image.asset(
-                      'assets/logo.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.store,
-                        size: 56,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
+                    child: const Icon(Icons.store,
+                        size: 50, color: Color(0xFF1A237E)),
+                  );
+                },
               ),
 
               const SizedBox(height: 28),

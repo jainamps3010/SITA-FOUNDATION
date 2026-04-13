@@ -17,8 +17,8 @@ class ProductDetailView extends GetView<ProductDetailController> {
         title: Obx(() => Text(controller.product.value?.name ?? 'Product')),
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           Obx(() {
