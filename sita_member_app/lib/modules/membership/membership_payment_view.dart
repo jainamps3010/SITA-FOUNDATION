@@ -79,7 +79,7 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -106,7 +106,7 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -141,12 +141,12 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: controller.agreed.value
-                            ? AppColors.success.withOpacity(0.06)
+                            ? AppColors.success.withValues(alpha: 0.06)
                             : Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: controller.agreed.value
-                              ? AppColors.success.withOpacity(0.4)
+                              ? AppColors.success.withValues(alpha: 0.4)
                               : Colors.orange.shade300,
                           width: 1.5,
                         ),

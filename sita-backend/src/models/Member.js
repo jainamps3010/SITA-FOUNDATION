@@ -75,6 +75,10 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true
     },
+    membership_active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
     rejection_reason: {
       type: DataTypes.TEXT,
       allowNull: true

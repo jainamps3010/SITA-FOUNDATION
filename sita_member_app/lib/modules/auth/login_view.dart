@@ -164,7 +164,7 @@ class LoginView extends GetView<LoginController> {
                         color: AppColors.primaryLight,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: AppColors.primary.withOpacity(0.2)),
+                            color: AppColors.primary.withValues(alpha: 0.2)),
                       ),
                       child: const Row(
                         crossAxisAlignment: CrossAxisAlignment.start,

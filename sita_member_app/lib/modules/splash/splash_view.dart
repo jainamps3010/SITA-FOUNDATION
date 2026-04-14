@@ -76,7 +76,7 @@ class _SplashViewState extends State<SplashView>
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.25),
+                            color: Colors.black.withValues(alpha: 0.25),
                             blurRadius: 32,
                             offset: const Offset(0, 12),
                           ),
@@ -128,10 +128,10 @@ class _SplashViewState extends State<SplashView>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                          color: Colors.white.withOpacity(0.2)),
+                          color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     child: const Text(
                       'For Hoteliers & Restaurateurs',

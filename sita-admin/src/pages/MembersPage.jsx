@@ -84,6 +84,36 @@ export default function MembersPage() {
     finally { setActionLoading(false); }
   };
 
+  const cancelMembership = async (member) => {
+    if (!window.confirm(`Are you sure you want to cancel this member's membership?`)) return;
+    setActionLoading(true);
+    try {
+      await api.post(`/admin/members/${member.id}/cancel-membership`);
+      setMsg({ type: 'success', text: 'Membership cancelled successfully' });
+      if (modal === 'detail') {
+        const r = await api.get(`/admin/members/${member.id}`);
+        setSelected(r.data.member);
+      }
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed to cancel membership' }); }
+    finally { setActionLoading(false); }
+  };
+
+  const revokeMembership = async (member) => {
+    if (!window.confirm(`Revoke membership cancellation for "${member.name}"? This will restore their active membership.`)) return;
+    setActionLoading(true);
+    try {
+      await api.post(`/admin/members/${member.id}/revoke-membership`);
+      setMsg({ type: 'success', text: 'Membership cancellation revoked' });
+      if (modal === 'detail') {
+        const r = await api.get(`/admin/members/${member.id}`);
+        setSelected(r.data.member);
+      }
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed to revoke' }); }
+    finally { setActionLoading(false); }
+  };
+
   const creditWallet = async () => {
     setActionLoading(true);
     try {
@@ -136,7 +166,13 @@ export default function MembersPage() {
                     </td>
                     <td>{m.phone}</td>
                     <td className="text-muted">{m.city || '—'}</td>
-                    <td>{m.membership_paid ? <span className="badge badge-success">Paid</span> : <span className="badge badge-warning">Unpaid</span>}</td>
+                    <td>
+                      {m.membership_active === false
+                        ? <span className="badge badge-danger">Membership Cancelled</span>
+                        : m.membership_paid
+                        ? <span className="badge badge-success">Paid</span>
+                        : <span className="badge badge-warning">Unpaid</span>}
+                    </td>
                     <td>{formatCurrency(m.sita_wallet_balance)}</td>
                     <td>{statusBadge(m.status)}</td>
                     <td className="text-muted">{formatDate(m.created_at)}</td>
@@ -148,6 +184,12 @@ export default function MembersPage() {
                             <button className="btn btn-success btn-sm" onClick={() => approve(m.id)}>Approve</button>
                             <button className="btn btn-danger btn-sm" onClick={() => { setSelected(m); setModal('reject'); }}>Reject</button>
                           </>
+                        )}
+                        {m.status === 'active' && m.membership_paid && m.membership_active !== false && (
+                          <button className="btn btn-danger btn-sm" onClick={() => cancelMembership(m)}>Cancel Membership</button>
+                        )}
+                        {m.membership_active === false && (
+                          <button className="btn btn-success btn-sm" onClick={() => revokeMembership(m)}>Revoke</button>
                         )}
                         <button className="btn btn-danger btn-sm" onClick={() => removeMember(m.id, m.name)}>Remove</button>
                       </div>
@@ -183,7 +225,9 @@ export default function MembersPage() {
                 <div className="detail-item">
                   <label>Membership</label>
                   <span>
-                    {selected.membership_paid
+                    {selected.membership_active === false
+                      ? <span className="badge badge-danger">Membership Cancelled</span>
+                      : selected.membership_paid
                       ? <>✅ Paid {selected.membership_paid_at && <span style={{ color: '#6b7280', fontSize: '12px' }}>on {formatDate(selected.membership_paid_at)}</span>}</>
                       : '❌ Unpaid'}
                   </span>
@@ -204,8 +248,14 @@ export default function MembersPage() {
                   <button className="btn btn-danger" onClick={() => setModal('reject')} disabled={actionLoading}>Reject</button>
                 </>
               )}
-              {!selected.membership_paid && (
+              {!selected.membership_paid && selected.membership_active !== false && (
                 <button className="btn btn-success" onClick={() => markMembershipPaid(selected)} disabled={actionLoading}>Mark Membership Paid</button>
+              )}
+              {selected.status === 'active' && selected.membership_paid && selected.membership_active !== false && (
+                <button className="btn btn-danger" onClick={() => cancelMembership(selected)} disabled={actionLoading}>Cancel Membership</button>
+              )}
+              {selected.membership_active === false && (
+                <button className="btn btn-success" onClick={() => revokeMembership(selected)} disabled={actionLoading}>Revoke Cancellation</button>
               )}
               <button className="btn btn-ghost" onClick={() => setModal('wallet')}>Credit Wallet</button>
               <button className="btn btn-ghost" onClick={() => setModal(null)}>Close</button>

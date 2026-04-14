@@ -238,6 +238,10 @@ export default function ProductsPage() {
   const [page, setPage]                 = useState(1);
   const [msg, setMsg]                   = useState(null);
   const [modal, setModal]               = useState(null); // null | 'add' | { mode:'edit', product }
+  const [csvModal, setCsvModal]         = useState(false);
+  const [csvFile, setCsvFile]           = useState(null);
+  const [csvVendorId, setCsvVendorId]   = useState('');
+  const [csvUploading, setCsvUploading] = useState(false);
 
   // Load vendors once for the dropdown
   useEffect(() => {
@@ -315,6 +319,65 @@ export default function ProductsPage() {
     });
   };
 
+  const downloadCSVTemplate = () => {
+    const headers = 'name,category,market_price,sita_price,unit,stock,min_order_qty,description';
+    const example = 'Refined Sunflower Oil,oils,150,120,Liters,100,5,Premium quality sunflower oil';
+    const blob = new Blob([headers + '\n' + example], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'products_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Handles quoted fields and commas inside values
+  const parseCSV = (text) => {
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+
+    return lines.slice(1).map(line => {
+      const vals = [];
+      let cur = '';
+      let inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { vals.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      vals.push(cur.trim());
+
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, '').trim(); });
+      return obj;
+    });
+  };
+
+  const uploadCSV = async () => {
+    if (!csvFile || !csvVendorId) return;
+    setCsvUploading(true);
+    try {
+      const text = await csvFile.text();
+      const products = parseCSV(text);
+      if (products.length === 0) {
+        flash('error', 'No valid rows found in CSV');
+        return;
+      }
+      const res = await api.post('/admin/products/bulk-upload', { vendor_id: csvVendorId, products });
+      setCsvModal(false);
+      setCsvFile(null);
+      setCsvVendorId('');
+      flash('success', res.data.message);
+      load();
+    } catch (e) {
+      flash('error', e.response?.data?.message || 'Upload failed');
+    } finally {
+      setCsvUploading(false);
+    }
+  };
+
   const categoryLabel = (val) => CATEGORIES.find(c => c.value === val)?.label || val?.replace(/_/g, ' ') || '—';
 
   return (
@@ -328,9 +391,14 @@ export default function ProductsPage() {
       <div className="card">
         <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ margin: 0 }}>Products ({pagination?.total || 0})</h3>
-          <button className="btn btn-primary btn-sm" onClick={() => setModal('add')}>
-            + Add Product
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setCsvModal(true)}>
+              Upload CSV
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={() => setModal('add')}>
+              + Add Product
+            </button>
+          </div>
         </div>
 
         <div className="card-body" style={{ paddingBottom: 0 }}>
@@ -467,6 +535,80 @@ export default function ProductsPage() {
           onClose={() => setModal(null)}
           onSaved={() => handleSaved('Product updated successfully')}
         />
+      )}
+
+      {/* CSV Upload modal */}
+      {csvModal && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setCsvModal(false)}>
+          <div className="modal" style={{ maxWidth: 480, width: '100%' }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0 }}>Upload Products via CSV</h3>
+              <button className="modal-close" onClick={() => { setCsvModal(false); setCsvFile(null); }}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'grid', gap: '16px' }}>
+              <div>
+                <p style={{ margin: '0 0 8px', color: '#4b5563', fontSize: '14px' }}>
+                  Select a vendor, download the template, fill in your products, then upload.
+                </p>
+                <button className="btn btn-ghost btn-sm" onClick={downloadCSVTemplate}>
+                  Download CSV Template
+                </button>
+              </div>
+
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '10px 12px', fontSize: '13px', color: '#6b7280' }}>
+                <strong style={{ color: '#374151' }}>CSV columns:</strong>{' '}
+                name, category, market_price, sita_price, unit, stock, min_order_qty, description
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Vendor <span style={{ color: 'red' }}>*</span></label>
+                <select
+                  className="form-control"
+                  value={csvVendorId}
+                  onChange={e => setCsvVendorId(e.target.value)}
+                >
+                  <option value="">Select vendor for all products…</option>
+                  {vendors.map(v => (
+                    <option key={v.id} value={v.id}>{v.company_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Select CSV File <span style={{ color: 'red' }}>*</span></label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="form-control"
+                  onChange={(e) => setCsvFile(e.target.files[0] || null)}
+                />
+                {csvFile && (
+                  <div style={{ marginTop: '6px', fontSize: '13px', color: '#6b7280' }}>
+                    Selected: {csvFile.name}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => { setCsvModal(false); setCsvFile(null); setCsvVendorId(''); }}
+                disabled={csvUploading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={uploadCSV}
+                disabled={!csvFile || !csvVendorId || csvUploading}
+              >
+                {csvUploading ? 'Uploading…' : 'Upload Products'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

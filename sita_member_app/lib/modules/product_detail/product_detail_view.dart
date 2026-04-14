@@ -65,10 +65,10 @@ class ProductDetailView extends GetView<ProductDetailController> {
               Container(
                 width: double.infinity,
                 height: 220,
-                color: AppColors.primary.withOpacity(0.07),
+                color: AppColors.primary.withValues(alpha: 0.07),
                 child: p.imageUrl != null
                     ? Image.network(p.imageUrl!, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _categoryIcon(p.category))
+                        errorBuilder: (_, _, _) => _categoryIcon(p.category))
                     : _categoryIcon(p.category),
               ),
               Padding(
@@ -90,7 +90,7 @@ class ProductDetailView extends GetView<ProductDetailController> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -115,10 +115,10 @@ class ProductDetailView extends GetView<ProductDetailController> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.05),
+                        color: AppColors.primary.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: AppColors.primary.withOpacity(0.15)),
+                            color: AppColors.primary.withValues(alpha: 0.15)),
                       ),
                       child: Column(
                         children: [
@@ -266,7 +266,7 @@ class ProductDetailView extends GetView<ProductDetailController> {
                     Obx(() => Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.05),
+                            color: AppColors.primary.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
@@ -339,6 +339,6 @@ class ProductDetailView extends GetView<ProductDetailController> {
 
   Widget _categoryIcon(String cat) => Center(
         child: Icon(Icons.inventory_2_outlined,
-            color: AppColors.primary.withOpacity(0.4), size: 80),
+            color: AppColors.primary.withValues(alpha: 0.4), size: 80),
       );
 }

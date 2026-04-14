@@ -166,7 +166,7 @@ class _ProductCard extends StatelessWidget {
               height: 110,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.07),
+                color: AppColors.primary.withValues(alpha: 0.07),
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(16)),
               ),
@@ -176,7 +176,7 @@ class _ProductCard extends StatelessWidget {
                           top: Radius.circular(16)),
                       child: Image.network(product.imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
+                          errorBuilder: (_, _, _) =>
                               _categoryIcon(product.category)),
                     )
                   : _categoryIcon(product.category),
@@ -229,7 +229,7 @@ class _ProductCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.1),
+                          color: AppColors.success.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -259,7 +259,7 @@ class _ProductCard extends StatelessWidget {
   Widget _categoryIcon(String cat) => Center(
         child: Icon(
           _iconForCategory(cat),
-          color: AppColors.primary.withOpacity(0.5),
+          color: AppColors.primary.withValues(alpha: 0.5),
           size: 48,
         ),
       );

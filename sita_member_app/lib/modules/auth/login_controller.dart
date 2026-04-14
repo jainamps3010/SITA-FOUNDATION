@@ -119,11 +119,11 @@ class LoginController extends GetxController {
       return;
     }
 
-    // Build body without null — express-validator rejects null for optional fields
+    // Build body — send to /auth/register with standardised field names
     final body = <String, dynamic>{
       'name': name,
-      'phone': phone,
-      'hotel_name': hotel,
+      'mobile': phone,
+      'business_name': hotel,
     };
     final email = emailCtrl.text.trim();
     final address = addressCtrl.text.trim();
@@ -133,15 +133,15 @@ class LoginController extends GetxController {
     final gstin = gstinCtrl.text.trim();
 
     if (email.isNotEmpty) body['email'] = email;
-    if (address.isNotEmpty) body['hotel_address'] = address;
+    if (address.isNotEmpty) body['address'] = address;
     if (city.isNotEmpty) body['city'] = city;
     if (state.isNotEmpty) body['state'] = state;
     if (pincode.isNotEmpty) body['pincode'] = pincode;
-    if (gstin.isNotEmpty) body['gstin'] = gstin;
+    if (gstin.isNotEmpty) body['gst_number'] = gstin;
 
     isLoading.value = true;
     try {
-      await Get.find<ApiService>().post('/members/register', body);
+      await Get.find<ApiService>().post('/auth/register', body);
       Get.offAllNamed(Routes.login);
       // Show after navigation so it's visible on the login screen
       await Future.delayed(const Duration(milliseconds: 300));

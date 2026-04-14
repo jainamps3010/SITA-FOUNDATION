@@ -31,7 +31,7 @@ class OtpVerifyView extends GetView<LoginController> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.sms_outlined,
@@ -74,7 +74,7 @@ class OtpVerifyView extends GetView<LoginController> {
                       selectedColor: AppColors.primary,
                       inactiveColor: AppColors.divider,
                       activeFillColor: Colors.white,
-                      selectedFillColor: AppColors.primary.withOpacity(0.05),
+                      selectedFillColor: AppColors.primary.withValues(alpha: 0.05),
                       inactiveFillColor: Colors.white,
                     ),
                     enableActiveFill: true,

@@ -178,6 +178,59 @@ router.post('/member/verify-otp', [
   }
 });
 
+// POST /auth/register — self-registration for new members
+// Accepts: mobile (or phone), name, business_name (or hotel_name), gst_number, address, email, city, state, pincode
+router.post('/register', [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('mobile').optional().matches(/^[6-9]\d{9}$/).withMessage('Valid 10-digit mobile required'),
+  body('phone').optional().matches(/^[6-9]\d{9}$/).withMessage('Valid 10-digit mobile required'),
+  body('business_name').optional().notEmpty(),
+  body('hotel_name').optional().notEmpty(),
+  body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Valid email required'),
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    // Accept both new (mobile/business_name) and old (phone/hotel_name) field names
+    const phone = (req.body.mobile || req.body.phone || '').trim();
+    const hotelName = (req.body.business_name || req.body.hotel_name || '').trim();
+
+    if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number required' });
+    }
+    if (!hotelName) {
+      return res.status(400).json({ success: false, message: 'Business/hotel name is required' });
+    }
+
+    const existing = await Member.findOne({ where: { phone } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'This mobile number is already registered' });
+    }
+
+    const member = await Member.create({
+      name:          req.body.name.trim(),
+      phone,
+      email:         req.body.email || null,
+      hotel_name:    hotelName,
+      hotel_address: (req.body.address || req.body.hotel_address || '').trim() || null,
+      city:          req.body.city?.trim()    || null,
+      state:         req.body.state?.trim()   || null,
+      pincode:       req.body.pincode?.trim() || null,
+      gstin:         (req.body.gst_number || req.body.gstin || '').trim() || null,
+      status:        'pending',
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Registration submitted. Awaiting admin approval.',
+      member: { id: member.id, name: member.name, phone: member.phone, status: member.status }
+    });
+  } catch (err) { next(err); }
+});
+
 // POST /auth/admin/login
 router.post('/admin/login', [
   body('email').isEmail().withMessage('Valid email required'),

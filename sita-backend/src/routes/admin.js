@@ -175,6 +175,28 @@ router.put('/members/:id/membership/mark-paid', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /admin/members/:id/cancel-membership
+router.post('/members/:id/cancel-membership', async (req, res, next) => {
+  try {
+    const member = await Member.findByPk(req.params.id);
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (member.membership_active === false) return res.status(400).json({ success: false, message: 'Membership already cancelled' });
+    await member.update({ membership_active: false });
+    res.json({ success: true, message: 'Membership cancelled', member });
+  } catch (err) { next(err); }
+});
+
+// POST /admin/members/:id/revoke-membership
+router.post('/members/:id/revoke-membership', async (req, res, next) => {
+  try {
+    const member = await Member.findByPk(req.params.id);
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (member.membership_active !== false) return res.status(400).json({ success: false, message: 'Membership is not cancelled' });
+    await member.update({ membership_active: true });
+    res.json({ success: true, message: 'Membership cancellation revoked', member });
+  } catch (err) { next(err); }
+});
+
 // DELETE /admin/members/:id
 router.delete('/members/:id', async (req, res, next) => {
   try {
@@ -320,6 +342,76 @@ router.post('/products', [
     });
     res.status(201).json({ success: true, message: 'Product created', product });
   } catch (err) { next(err); }
+});
+
+// POST /admin/products/bulk-upload — insert multiple products from CSV
+// Body: { vendor_id: string, products: [{ name, category, sita_price, unit, market_price?, stock?, min_order_qty?, description? }] }
+router.post('/products/bulk-upload', async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const { vendor_id, products } = req.body;
+
+    console.log('[bulk-upload] vendor_id:', vendor_id);
+    console.log('[bulk-upload] products received:', JSON.stringify(products?.slice(0, 2)));
+
+    if (!vendor_id) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'vendor_id is required' });
+    }
+    if (!Array.isArray(products) || products.length === 0) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'No products provided' });
+    }
+
+    // Validate vendor once
+    const vendor = await Vendor.findByPk(vendor_id, { transaction: t });
+    if (!vendor) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Vendor not found' });
+    }
+
+    const created = [];
+    const skipped = [];
+
+    for (const p of products) {
+      const name      = String(p.name      || '').trim();
+      const category  = String(p.category  || '').trim();
+      const unit      = String(p.unit      || '').trim();
+      const sitaPrice = parseFloat(p.sita_price);
+
+      // Skip rows missing required fields
+      if (!name || !category || !unit || isNaN(sitaPrice) || sitaPrice <= 0) {
+        skipped.push({ row: p, reason: 'missing required field (name/category/unit/sita_price)' });
+        continue;
+      }
+
+      const product = await Product.create({
+        vendor_id,
+        name,
+        description:    String(p.description || '').trim() || null,
+        category,
+        unit,
+        market_price:   p.market_price !== '' && p.market_price != null ? parseFloat(p.market_price) : null,
+        price_per_unit: sitaPrice,
+        moq:            p.min_order_qty !== '' && p.min_order_qty != null ? parseInt(p.min_order_qty) || 1 : 1,
+        stock_quantity: p.stock !== '' && p.stock != null ? parseInt(p.stock) || 0 : 0,
+        approved:       false,
+        available:      true,
+      }, { transaction: t });
+      created.push(product);
+    }
+
+    console.log('[bulk-upload] created:', created.length, '| skipped:', skipped.length);
+    if (skipped.length) console.log('[bulk-upload] skipped rows:', JSON.stringify(skipped));
+
+    await t.commit();
+    res.status(201).json({
+      success: true,
+      message: `${created.length} product${created.length !== 1 ? 's' : ''} added successfully`,
+      count: created.length,
+      ...(skipped.length && { skipped: skipped.length }),
+    });
+  } catch (err) { await t.rollback(); next(err); }
 });
 
 // PUT /admin/products/:id — edit an existing product

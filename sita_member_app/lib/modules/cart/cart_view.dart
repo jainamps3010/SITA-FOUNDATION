@@ -132,12 +132,12 @@ class CartView extends GetView<CartController> {
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: controller.acceptedTerms.value
-                                ? AppColors.success.withOpacity(0.05)
+                                ? AppColors.success.withValues(alpha: 0.05)
                                 : Colors.orange.shade50,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: controller.acceptedTerms.value
-                                  ? AppColors.success.withOpacity(0.3)
+                                  ? AppColors.success.withValues(alpha: 0.3)
                                   : Colors.orange.shade200,
                             ),
                           ),
@@ -205,7 +205,7 @@ class CartView extends GetView<CartController> {
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withOpacity(0.05) : Colors.transparent,
+          color: selected ? AppColors.primary.withValues(alpha: 0.05) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.divider,
@@ -281,7 +281,7 @@ class _CartItemCard extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.07),
+              color: AppColors.primary.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.inventory_2_outlined,
