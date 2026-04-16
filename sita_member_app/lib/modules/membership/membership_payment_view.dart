@@ -55,7 +55,7 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'One-time fee for lifetime technology access\nto SITA Foundation marketplace',
+                'Annual fee for marketplace access\nto SITA Foundation platform',
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 14,
@@ -110,7 +110,7 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
-                        'One-time • Non-Refundable',
+                        'Annual • Non-Refundable',
                         style: TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
@@ -166,7 +166,7 @@ class MembershipPaymentView extends GetView<MembershipPaymentController> {
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
-                              'I agree this fee is for technology access and is strictly Non-Refundable. I accept all Terms & Conditions of SITA Foundation membership.',
+                              'I agree this annual fee is for technology access and is strictly Non-Refundable. I accept all Terms & Conditions of SITA Foundation membership.',
                               style: TextStyle(
                                 fontSize: 13,
                                 height: 1.5,

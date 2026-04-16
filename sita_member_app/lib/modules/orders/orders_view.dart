@@ -173,7 +173,7 @@ class _OrderCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (['pending', 'dispatched'].contains(order.status)) ...[
+              if (['pending', 'confirmed'].contains(order.status)) ...[
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,

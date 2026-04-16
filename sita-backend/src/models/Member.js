@@ -79,6 +79,18 @@ module.exports = (sequelize) => {
       type: DataTypes.BOOLEAN,
       defaultValue: true
     },
+    membership_start_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
+    },
+    membership_expiry_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
+    },
+    membership_status: {
+      type: DataTypes.ENUM('active', 'expired', 'cancelled', 'pending'),
+      defaultValue: 'pending'
+    },
     rejection_reason: {
       type: DataTypes.TEXT,
       allowNull: true

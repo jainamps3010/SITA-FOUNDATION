@@ -142,4 +142,50 @@ const reportDefect = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getOrders, confirmDelivery, reportDefect };
+// POST /api/v1/delivery/cancel
+// Body: { order_id }
+const cancelDelivery = async (req, res, next) => {
+  try {
+    const { order_id } = req.body;
+
+    if (!order_id) {
+      return res.status(400).json({ success: false, message: 'order_id is required' });
+    }
+
+    const order = await Order.findByPk(order_id, {
+      include: [{ model: Member, as: 'member', attributes: ['id', 'name'] }]
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.status !== 'dispatched') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot cancel order with status: ${order.status}`
+      });
+    }
+
+    await order.update({
+      status: 'pending',
+      cancellation_reason: 'Cancelled by delivery partner'
+    });
+
+    // Notify admin
+    console.log(`[ADMIN NOTIFY] Order ${order.order_number} was cancelled by delivery partner and reverted to pending.`);
+
+    res.json({
+      success: true,
+      message: 'Delivery cancelled. Order returned to pending.',
+      order: {
+        id: order.id,
+        order_number: order.order_number,
+        status: 'pending',
+        member: order.member
+      }
+    });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getOrders, confirmDelivery, reportDefect, cancelDelivery };

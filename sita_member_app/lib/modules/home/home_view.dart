@@ -241,6 +241,174 @@ class HomeView extends GetView<HomeController> {
     return Obx(() {
       final m = controller.member.value;
       if (m == null) return const SizedBox.shrink();
+
+      // Not yet paid — simple prompt card
+      if (!m.membershipPaid) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.pending_outlined,
+                      color: AppColors.warning, size: 24),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Membership Pending',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                      Text('Complete annual membership payment to order',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      final days = m.daysUntilExpiry;
+      final isExpired = m.isMembershipExpired;
+      final isExpiringSoon = m.isExpiringSoon;
+
+      // Expired — red banner
+      if (isExpired) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFEBEE),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.red.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.cancel_outlined, color: Colors.red, size: 22),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text('Membership Expired — Renew Now',
+                          style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  m.membershipExpiryDate != null
+                      ? 'Expired on ${_formatDate(m.membershipExpiryDate!)}'
+                      : 'Your membership has expired',
+                  style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                Obx(() => SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: controller.isRenewing.value
+                            ? null
+                            : () => controller.renewMembership(Get.context!),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            minimumSize: const Size(double.infinity, 44)),
+                        icon: controller.isRenewing.value
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2))
+                            : const Icon(Icons.autorenew, size: 18),
+                        label: Text(controller.isRenewing.value
+                            ? 'Processing...'
+                            : 'Renew Membership  •  ₹5,000'),
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Expiring soon — orange warning
+      if (isExpiringSoon) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.orange.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.warning_amber_outlined,
+                        color: Colors.orange, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Renew Soon — $days day${days == 1 ? '' : 's'} left',
+                        style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  m.membershipExpiryDate != null
+                      ? 'Expires on ${_formatDate(m.membershipExpiryDate!)}'
+                      : '',
+                  style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                Obx(() => SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: controller.isRenewing.value
+                            ? null
+                            : () => controller.renewMembership(Get.context!),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orange.shade800,
+                          side: BorderSide(color: Colors.orange.shade400),
+                          minimumSize: const Size(double.infinity, 44),
+                        ),
+                        icon: const Icon(Icons.autorenew, size: 18),
+                        label: const Text('Renew Membership  •  ₹5,000'),
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Active — green status card
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
         child: Container(
@@ -256,46 +424,49 @@ class HomeView extends GetView<HomeController> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: m.membershipPaid
-                      ? AppColors.success.withValues(alpha: 0.1)
-                      : AppColors.warning.withValues(alpha: 0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  m.membershipPaid ? Icons.verified : Icons.pending_outlined,
-                  color:
-                      m.membershipPaid ? AppColors.success : AppColors.warning,
-                  size: 24,
-                ),
+                child: const Icon(Icons.verified, color: AppColors.success, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      m.membershipPaid
-                          ? 'Active Member'
-                          : 'Membership Pending',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 15),
-                    ),
-                    Text(
-                      m.membershipPaid
-                          ? 'You have full marketplace access'
-                          : 'Complete membership payment to order',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
-                    ),
+                    const Text('Membership Active',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    if (m.membershipExpiryDate != null)
+                      Text(
+                        'Expires: ${_formatDate(m.membershipExpiryDate!)}  •  $days day${days == 1 ? '' : 's'} left',
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 12),
+                      ),
                   ],
                 ),
               ),
-              StatusBadge(status: m.status),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text('Active',
+                    style: TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12)),
+              ),
             ],
           ),
         ),
       );
     });
+  }
+
+  String _formatDate(DateTime dt) {
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
   }
 
   Widget _buildRecentSection() {

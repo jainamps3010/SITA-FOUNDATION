@@ -18,12 +18,19 @@ router.use(authenticateAdmin);
 // GET /admin/dashboard/stats
 router.get('/dashboard/stats', async (req, res, next) => {
   try {
+    const today = new Date().toISOString().split('T')[0];
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const thirtyDaysStr = thirtyDaysFromNow.toISOString().split('T')[0];
+
     const [
       totalMembers, activeMembers, pendingMembers,
       totalVendors, activeVendors,
       totalOrders, pendingOrders, deliveredOrders,
       openDisputes,
-      totalRevenue
+      totalRevenue,
+      expiredMemberships,
+      expiringThisMonth
     ] = await Promise.all([
       Member.count(),
       Member.count({ where: { status: 'active' } }),
@@ -34,7 +41,14 @@ router.get('/dashboard/stats', async (req, res, next) => {
       Order.count({ where: { status: 'pending' } }),
       Order.count({ where: { status: 'delivered' } }),
       Dispute.count({ where: { status: { [Op.in]: ['open', 'investigating'] } } }),
-      Order.sum('sita_commission', { where: { status: { [Op.notIn]: ['cancelled'] } } })
+      Order.sum('sita_commission', { where: { status: { [Op.notIn]: ['cancelled'] } } }),
+      Member.count({ where: { membership_status: 'expired' } }),
+      Member.count({
+        where: {
+          membership_status: 'active',
+          membership_expiry_date: { [Op.between]: [today, thirtyDaysStr] }
+        }
+      })
     ]);
 
     const recentOrders = await Order.findAll({
@@ -53,7 +67,8 @@ router.get('/dashboard/stats', async (req, res, next) => {
         vendors: { total: totalVendors, active: activeVendors },
         orders: { total: totalOrders, pending: pendingOrders, delivered: deliveredOrders },
         disputes: { open: openDisputes },
-        revenue: { sita_commission_total: parseFloat(totalRevenue || 0).toFixed(2) }
+        revenue: { sita_commission_total: parseFloat(totalRevenue || 0).toFixed(2) },
+        memberships: { expired: expiredMemberships, expiring_this_month: expiringThisMonth }
       },
       recent_orders: recentOrders
     });
@@ -69,6 +84,7 @@ router.get('/members', async (req, res, next) => {
     const where = {};
     if (req.query.status) where.status = req.query.status;
     if (req.query.membership_paid !== undefined) where.membership_paid = req.query.membership_paid === 'true';
+    if (req.query.membership_status) where.membership_status = req.query.membership_status;
     if (req.query.category) where.category = req.query.category;
     if (req.query.search) {
       where[Op.or] = [
@@ -207,10 +223,43 @@ router.put('/members/:id/membership/mark-paid', async (req, res, next) => {
   try {
     const member = await Member.findByPk(req.params.id);
     if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
-    if (member.membership_paid) return res.status(400).json({ success: false, message: 'Membership already paid' });
+    if (member.membership_paid) return res.status(400).json({ success: false, message: 'Membership already paid. Use extend-membership to add another year.' });
     const membershipFee = parseFloat(process.env.MEMBERSHIP_FEE) || 5000;
-    await member.update({ membership_paid: true, membership_fee: membershipFee, membership_paid_at: new Date() });
-    res.json({ success: true, message: 'Membership marked as paid', member });
+    const today = new Date();
+    const expiryDate = new Date(today);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    await member.update({
+      membership_paid: true,
+      membership_fee: membershipFee,
+      membership_paid_at: today,
+      membership_start_date: today.toISOString().split('T')[0],
+      membership_expiry_date: expiryDate.toISOString().split('T')[0],
+      membership_status: 'active'
+    });
+    res.json({ success: true, message: 'Annual membership marked as paid', member });
+  } catch (err) { next(err); }
+});
+
+// PUT /admin/members/:id/extend-membership - Extend membership by 1 year
+router.put('/members/:id/extend-membership', async (req, res, next) => {
+  try {
+    const member = await Member.findByPk(req.params.id);
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (!member.membership_paid) return res.status(400).json({ success: false, message: 'Member has no existing membership to extend' });
+
+    // Extend from current expiry or from today if expired
+    const baseDate = member.membership_expiry_date && new Date(member.membership_expiry_date) > new Date()
+      ? new Date(member.membership_expiry_date)
+      : new Date();
+    const newExpiry = new Date(baseDate);
+    newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+
+    await member.update({
+      membership_expiry_date: newExpiry.toISOString().split('T')[0],
+      membership_status: 'active',
+      membership_paid_at: new Date()
+    });
+    res.json({ success: true, message: `Membership extended until ${newExpiry.toISOString().split('T')[0]}`, member });
   } catch (err) { next(err); }
 });
 
@@ -220,7 +269,7 @@ router.post('/members/:id/cancel-membership', async (req, res, next) => {
     const member = await Member.findByPk(req.params.id);
     if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
     if (member.membership_active === false) return res.status(400).json({ success: false, message: 'Membership already cancelled' });
-    await member.update({ membership_active: false });
+    await member.update({ membership_active: false, membership_status: 'cancelled' });
     res.json({ success: true, message: 'Membership cancelled', member });
   } catch (err) { next(err); }
 });
@@ -231,7 +280,7 @@ router.post('/members/:id/revoke-membership', async (req, res, next) => {
     const member = await Member.findByPk(req.params.id);
     if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
     if (member.membership_active !== false) return res.status(400).json({ success: false, message: 'Membership is not cancelled' });
-    await member.update({ membership_active: true });
+    await member.update({ membership_active: true, membership_status: 'active' });
     res.json({ success: true, message: 'Membership cancellation revoked', member });
   } catch (err) { next(err); }
 });

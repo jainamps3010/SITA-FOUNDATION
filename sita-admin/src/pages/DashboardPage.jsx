@@ -28,7 +28,7 @@ export default function DashboardPage() {
   if (loading) return <div className="loading"><div className="spinner" /></div>;
   if (!stats) return <div className="alert alert-error">Failed to load dashboard</div>;
 
-  const { members, vendors, orders, disputes, revenue, recent_orders } = stats.stats || stats;
+  const { members, vendors, orders, disputes, revenue, memberships, recent_orders } = stats.stats || stats;
 
   return (
     <>
@@ -81,6 +81,26 @@ export default function DashboardPage() {
             <div className="stat-label">SITA Revenue (2%)</div>
             <div className="stat-value">{formatCurrency(revenue?.sita_commission_total || 0)}</div>
             <div className="stat-sub">Total commission earned</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: '#fff3e0' }}>
+            <svg fill="none" viewBox="0 0 24 24" stroke="#e65100"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <div>
+            <div className="stat-label">Expiring This Month</div>
+            <div className="stat-value" style={{ color: '#e65100' }}>{memberships?.expiring_this_month || 0}</div>
+            <div className="stat-sub">Annual memberships</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: '#fde8e8' }}>
+            <svg fill="none" viewBox="0 0 24 24" stroke="#c81e1e"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <div>
+            <div className="stat-label">Expired Memberships</div>
+            <div className="stat-value" style={{ color: '#c81e1e' }}>{memberships?.expired || 0}</div>
+            <div className="stat-sub">Need renewal</div>
           </div>
         </div>
       </div>

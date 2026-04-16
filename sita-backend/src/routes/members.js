@@ -36,27 +36,73 @@ router.put('/profile', authenticateMember, [
   } catch (err) { next(err); }
 });
 
-// POST /members/membership/pay - Pay non-refundable membership fee
+// POST /members/membership/pay - Pay annual membership fee (first time)
 router.post('/membership/pay', authenticateMember, async (req, res, next) => {
   try {
     if (req.member.membership_paid) {
-      return res.status(400).json({ success: false, message: 'Membership already paid' });
+      return res.status(400).json({ success: false, message: 'Membership already paid. Use renew-membership to extend.' });
     }
 
     const membershipFee = parseFloat(process.env.MEMBERSHIP_FEE) || 5000;
+    const today = new Date();
+    const expiryDate = new Date(today);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-    // In production: integrate payment gateway (Razorpay/PayU)
-    // Here we simulate successful payment
     await req.member.update({
       membership_paid: true,
       membership_fee: membershipFee,
-      membership_paid_at: new Date()
+      membership_paid_at: today,
+      membership_start_date: today.toISOString().split('T')[0],
+      membership_expiry_date: expiryDate.toISOString().split('T')[0],
+      membership_status: 'active'
     });
 
     res.json({
       success: true,
-      message: `Membership fee of ₹${membershipFee} paid successfully. Note: This fee is non-refundable.`,
+      message: `Annual membership fee of ₹${membershipFee} paid successfully. Valid until ${expiryDate.toISOString().split('T')[0]}. Note: This fee is non-refundable.`,
       member: req.member
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /members/renew-membership - Renew annual membership
+router.post('/renew-membership', authenticateMember, async (req, res, next) => {
+  try {
+    if (!req.member.membership_paid) {
+      return res.status(400).json({ success: false, message: 'No existing membership found. Please pay the initial fee first.' });
+    }
+
+    const membershipFee = parseFloat(process.env.MEMBERSHIP_FEE) || 5000;
+    const today = new Date();
+    const expiryDate = new Date(today);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+    await req.member.update({
+      membership_fee: membershipFee,
+      membership_paid_at: today,
+      membership_start_date: today.toISOString().split('T')[0],
+      membership_expiry_date: expiryDate.toISOString().split('T')[0],
+      membership_status: 'active'
+    });
+
+    res.json({
+      success: true,
+      message: `Membership renewed successfully. Valid until ${expiryDate.toISOString().split('T')[0]}.`,
+      member: req.member
+    });
+  } catch (err) { next(err); }
+});
+
+// GET /members/cancellation-count
+router.get('/cancellation-count', authenticateMember, async (req, res, next) => {
+  try {
+    const count = await Order.count({
+      where: { member_id: req.member.id, status: 'cancelled' }
+    });
+    res.json({
+      success: true,
+      count,
+      free_cancellations_used: count > 0 ? 1 : 0
     });
   } catch (err) { next(err); }
 });

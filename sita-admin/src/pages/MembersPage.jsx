@@ -36,6 +36,31 @@ const docLink = (url, label) => {
   );
 };
 
+// Returns days remaining until expiry. Negative = expired.
+const daysUntilExpiry = (expiryDateStr) => {
+  if (!expiryDateStr) return null;
+  const expiry = new Date(expiryDateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
+};
+
+const membershipStatusBadge = (m) => {
+  const ms = m.membership_status;
+  if (!m.membership_paid) return <span className="badge badge-warning">Unpaid</span>;
+  if (ms === 'expired' || (m.membership_expiry_date && daysUntilExpiry(m.membership_expiry_date) < 0)) {
+    return <span className="badge badge-danger">Expired</span>;
+  }
+  if (ms === 'cancelled' || m.membership_active === false) {
+    return <span className="badge badge-danger">Cancelled</span>;
+  }
+  const days = daysUntilExpiry(m.membership_expiry_date);
+  if (days !== null && days <= 30) {
+    return <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:'12px', fontSize:'11px', fontWeight:600, color:'#92400e', background:'#fef3c7' }}>Expiring Soon</span>;
+  }
+  return <span className="badge badge-success">Active</span>;
+};
+
 export default function MembersPage() {
   const [members, setMembers] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -43,6 +68,7 @@ export default function MembersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [membershipFilter, setMembershipFilter] = useState('');
+  const [membershipStatusFilter, setMembershipStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
@@ -59,6 +85,7 @@ export default function MembersPage() {
     if (search) params.search = search;
     if (statusFilter) params.status = statusFilter;
     if (membershipFilter !== '') params.membership_paid = membershipFilter;
+    if (membershipStatusFilter) params.membership_status = membershipStatusFilter;
     if (categoryFilter) params.category = categoryFilter;
     api.get('/admin/members', { params })
       .then(r => { setMembers(r.data.data); setPagination(r.data.pagination); })
@@ -66,7 +93,7 @@ export default function MembersPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [page, statusFilter, membershipFilter, categoryFilter]);
+  useEffect(() => { load(); }, [page, statusFilter, membershipFilter, membershipStatusFilter, categoryFilter]);
   useEffect(() => { const t = setTimeout(load, 400); return () => clearTimeout(t); }, [search]);
 
   const openDetail = async (member) => {
@@ -150,6 +177,21 @@ export default function MembersPage() {
     finally { setActionLoading(false); }
   };
 
+  const extendMembership = async (member) => {
+    if (!window.confirm(`Extend membership for "${member.name}" by 1 year? This is non-refundable.`)) return;
+    setActionLoading(true);
+    try {
+      await api.put(`/admin/members/${member.id}/extend-membership`);
+      setMsg({ type: 'success', text: 'Membership extended by 1 year' });
+      if (modal === 'detail') {
+        const r = await api.get(`/admin/members/${member.id}`);
+        setSelected(r.data.member);
+      }
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed to extend' }); }
+    finally { setActionLoading(false); }
+  };
+
   const openWallet = (member) => {
     setSelected(member);
     setWalletAmount('');
@@ -200,6 +242,13 @@ export default function MembersPage() {
               <option value="true">Paid</option>
               <option value="false">Unpaid</option>
             </select>
+            <select className="filter-select" value={membershipStatusFilter} onChange={e => { setMembershipStatusFilter(e.target.value); setPage(1); }}>
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="expired">Expired</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="pending">Pending</option>
+            </select>
             <select className="filter-select" value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(1); }}>
               <option value="">All Categories</option>
               {Object.entries(CATEGORIES).map(([k, v]) => (
@@ -213,11 +262,14 @@ export default function MembersPage() {
             <table>
               <thead><tr>
                 <th>Name / Hotel</th><th>Phone</th><th>City</th><th>Category</th>
-                <th>Membership</th><th>Wallet</th><th>Status</th><th>Joined</th><th>Actions</th>
+                <th>Membership</th><th>Expiry Date</th><th>Days Left</th>
+                <th>Wallet</th><th>Status</th><th>Joined</th><th>Actions</th>
               </tr></thead>
               <tbody>
-                {members.length === 0 && <tr><td colSpan={9} style={{ textAlign: 'center', color: '#9ca3af', padding: '40px' }}>No members found</td></tr>}
-                {members.map(m => (
+                {members.length === 0 && <tr><td colSpan={11} style={{ textAlign: 'center', color: '#9ca3af', padding: '40px' }}>No members found</td></tr>}
+                {members.map(m => {
+                  const days = daysUntilExpiry(m.membership_expiry_date);
+                  return (
                   <tr key={m.id}>
                     <td>
                       <div style={{ fontWeight: 500 }}>{m.name}</div>
@@ -226,12 +278,16 @@ export default function MembersPage() {
                     <td>{m.phone}</td>
                     <td className="text-muted">{m.city || '—'}</td>
                     <td>{categoryBadge(m.category)}</td>
+                    <td>{membershipStatusBadge(m)}</td>
+                    <td className="text-muted">
+                      {m.membership_expiry_date ? formatDate(m.membership_expiry_date) : '—'}
+                    </td>
                     <td>
-                      {m.membership_active === false
-                        ? <span className="badge badge-danger">Membership Cancelled</span>
-                        : m.membership_paid
-                        ? <span className="badge badge-success">Paid</span>
-                        : <span className="badge badge-warning">Unpaid</span>}
+                      {days === null ? '—' : days < 0
+                        ? <span style={{ color: '#c81e1e', fontWeight: 600 }}>Expired</span>
+                        : days <= 30
+                        ? <span style={{ color: '#92400e', fontWeight: 600 }}>{days}d</span>
+                        : <span style={{ color: '#059669' }}>{days}d</span>}
                     </td>
                     <td>{formatCurrency(m.sita_wallet_balance)}</td>
                     <td>{statusBadge(m.status)}</td>
@@ -246,8 +302,11 @@ export default function MembersPage() {
                             <button className="btn btn-danger btn-sm" onClick={() => { setSelected(m); setModal('reject'); }}>Reject</button>
                           </>
                         )}
+                        {m.membership_paid && m.membership_active !== false && (
+                          <button className="btn btn-ghost btn-sm" style={{ color: '#1A237E' }} onClick={() => extendMembership(m)}>Extend +1yr</button>
+                        )}
                         {m.status === 'active' && m.membership_paid && m.membership_active !== false && (
-                          <button className="btn btn-danger btn-sm" onClick={() => cancelMembership(m)}>Cancel Membership</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => cancelMembership(m)}>Cancel</button>
                         )}
                         {m.membership_active === false && (
                           <button className="btn btn-success btn-sm" onClick={() => revokeMembership(m)}>Revoke</button>
@@ -256,7 +315,8 @@ export default function MembersPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -290,12 +350,17 @@ export default function MembersPage() {
                 <div className="detail-item"><label>Pincode</label><span>{selected.pincode || '—'}</span></div>
                 <div className="detail-item">
                   <label>Membership</label>
-                  <span>
-                    {selected.membership_active === false
-                      ? <span className="badge badge-danger">Cancelled</span>
-                      : selected.membership_paid
-                      ? <>✅ Paid {selected.membership_paid_at && <span style={{ color: '#6b7280', fontSize: '12px' }}>on {formatDate(selected.membership_paid_at)}</span>}</>
-                      : '❌ Unpaid'}
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {membershipStatusBadge(selected)}
+                    {selected.membership_expiry_date && (
+                      <span style={{ color: '#6b7280', fontSize: '12px' }}>
+                        Expires: {formatDate(selected.membership_expiry_date)}
+                        {(() => { const d = daysUntilExpiry(selected.membership_expiry_date); return d !== null ? ` (${d < 0 ? 'Expired' : d + 'd left'})` : ''; })()}
+                      </span>
+                    )}
+                    {selected.membership_paid_at && (
+                      <span style={{ color: '#6b7280', fontSize: '12px' }}>Last paid: {formatDate(selected.membership_paid_at)}</span>
+                    )}
                   </span>
                 </div>
                 <div className="detail-item"><label>Wallet Balance</label><span>{formatCurrency(selected.sita_wallet_balance)}</span></div>
@@ -398,7 +463,10 @@ export default function MembersPage() {
                 </>
               )}
               {!selected.membership_paid && selected.membership_active !== false && (
-                <button className="btn btn-success" onClick={() => markMembershipPaid(selected)} disabled={actionLoading}>Mark Membership Paid</button>
+                <button className="btn btn-success" onClick={() => markMembershipPaid(selected)} disabled={actionLoading}>Mark Annual Fee Paid</button>
+              )}
+              {selected.membership_paid && selected.membership_active !== false && (
+                <button className="btn btn-ghost" style={{ color: '#1A237E', border: '1px solid #1A237E' }} onClick={() => extendMembership(selected)} disabled={actionLoading}>Extend +1 Year</button>
               )}
               {selected.status === 'active' && selected.membership_paid && selected.membership_active !== false && (
                 <button className="btn btn-danger" onClick={() => cancelMembership(selected)} disabled={actionLoading}>Cancel Membership</button>

@@ -587,6 +587,72 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
     }
   }
 
+  Future<void> _cancelDelivery(dynamic order) async {
+    final orderId = order['id'] ?? order['_id'] ?? order['order_id'];
+    final memberName = order['member_name']?.toString() ??
+        order['memberName']?.toString() ??
+        'this order';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Delivery',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Are you sure you want to cancel the delivery for $memberName? '
+          'The order will be returned to pending.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No, Keep It'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kError),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/delivery/cancel'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'order_id': orderId}),
+      );
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Delivery cancelled. Order returned to pending.'),
+            backgroundColor: kSuccess,
+          ),
+        );
+        _fetchOrders();
+      } else {
+        final body = jsonDecode(res.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(body['message']?.toString() ?? 'Cancellation failed.'),
+            backgroundColor: kError,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Network error. Please try again.'),
+          backgroundColor: kError,
+        ),
+      );
+    }
+  }
+
   Color _statusColor(String? status) {
     switch (status?.toLowerCase()) {
       case 'delivered':
@@ -782,6 +848,30 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
                                               size: 18),
                                           label: const Text(
                                               'Confirm Delivery'),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: kError,
+                                            side: const BorderSide(color: kError),
+                                            minimumSize: const Size(
+                                                double.infinity, 46),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12)),
+                                          ),
+                                          onPressed: () =>
+                                              _cancelDelivery(order),
+                                          icon: const Icon(
+                                              Icons.cancel_outlined,
+                                              size: 18),
+                                          label: const Text('Cancel Delivery',
+                                              style: TextStyle(
+                                                  fontWeight:
+                                                      FontWeight.w700)),
                                         ),
                                       ),
                                     ],

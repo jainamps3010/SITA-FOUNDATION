@@ -5,6 +5,7 @@ import '../../app/routes/app_routes.dart';
 import '../../data/models/product_model.dart';
 import '../../widgets/common_widgets.dart';
 import '../cart/cart_controller.dart';
+import '../home/home_controller.dart';
 import 'marketplace_controller.dart';
 
 class MarketplaceView extends GetView<MarketplaceController> {
@@ -53,12 +54,50 @@ class MarketplaceView extends GetView<MarketplaceController> {
       ),
       body: Column(
         children: [
+          _buildMembershipBanner(),
           _buildSearch(),
           _buildCategories(),
           Expanded(child: _buildProducts()),
         ],
       ),
     );
+  }
+
+  Widget _buildMembershipBanner() {
+    final homeCtrl = Get.isRegistered<HomeController>()
+        ? Get.find<HomeController>()
+        : null;
+    if (homeCtrl == null) return const SizedBox.shrink();
+    return Obx(() {
+      final m = homeCtrl.member.value;
+      if (m == null || !m.isMembershipExpired) return const SizedBox.shrink();
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        color: Colors.red.shade50,
+        child: Row(
+          children: [
+            const Icon(Icons.block, color: Colors.red, size: 18),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Membership Expired — Please renew to continue ordering',
+                style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Get.toNamed(Routes.home),
+              child: const Text('Renew',
+                  style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildSearch() => Padding(

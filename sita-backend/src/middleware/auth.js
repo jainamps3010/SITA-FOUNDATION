@@ -60,8 +60,23 @@ const requireMembership = (req, res, next) => {
   if (!req.member.membership_paid) {
     return res.status(403).json({
       success: false,
-      message: 'Active membership required to place orders. Please pay the membership fee.',
+      message: 'Active membership required to place orders. Please pay the annual membership fee.',
       code: 'MEMBERSHIP_REQUIRED'
+    });
+  }
+  const ms = req.member.membership_status;
+  if (ms === 'expired') {
+    return res.status(403).json({
+      success: false,
+      message: 'Your annual membership has expired. Please renew to continue ordering.',
+      code: 'MEMBERSHIP_EXPIRED'
+    });
+  }
+  if (ms === 'cancelled') {
+    return res.status(403).json({
+      success: false,
+      message: 'Your membership has been cancelled. Please contact support.',
+      code: 'MEMBERSHIP_CANCELLED'
     });
   }
   if (req.member.status !== 'active') {

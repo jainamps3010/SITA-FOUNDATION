@@ -30,7 +30,7 @@ class OrderDetailView extends GetView<OrdersController> {
               _buildStatusTracker(order.status),
               const SizedBox(height: 16),
               // Cancel button for pending/dispatched
-              if (['pending', 'dispatched'].contains(order.status))
+              if (['pending', 'confirmed'].contains(order.status))
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Obx(() => SizedBox(
@@ -38,7 +38,8 @@ class OrderDetailView extends GetView<OrdersController> {
                         child: OutlinedButton.icon(
                           onPressed: controller.isCancelling.value
                               ? null
-                              : () => controller.showCancelDialog(context, order),
+                              : () => controller.showCancelDialog(context, order,
+                                    navigateBack: true),
                           icon: controller.isCancelling.value
                               ? const SizedBox(
                                   width: 16,
