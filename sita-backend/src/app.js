@@ -3,6 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
 
 const { errorHandler, notFound } = require('./middleware/error');
@@ -63,6 +64,9 @@ const authLimiter = rateLimit({
 });
 
 app.use('/api/v1', limiter);
+
+// ─── Static uploads (KYC documents & photos) ─────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {

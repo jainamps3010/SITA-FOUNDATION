@@ -69,6 +69,7 @@ router.get('/members', async (req, res, next) => {
     const where = {};
     if (req.query.status) where.status = req.query.status;
     if (req.query.membership_paid !== undefined) where.membership_paid = req.query.membership_paid === 'true';
+    if (req.query.category) where.category = req.query.category;
     if (req.query.search) {
       where[Op.or] = [
         { name: { [Op.iLike]: `%${req.query.search}%` } },
@@ -135,7 +136,7 @@ router.put('/members/:id/suspend', async (req, res, next) => {
 // POST /admin/members/:id/wallet/credit - Add wallet balance
 router.post('/members/:id/wallet/credit', [
   body('amount').isFloat({ min: 1 }).withMessage('Valid amount required'),
-  body('description').notEmpty().withMessage('Description required')
+  body('reason').notEmpty().withMessage('Reason required')
 ], async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
@@ -155,11 +156,49 @@ router.post('/members/:id/wallet/credit', [
       amount,
       balance_after: newBalance,
       reason: 'admin_credit',
-      description: req.body.description
+      description: req.body.reason
     }, { transaction: t });
 
     await t.commit();
     res.json({ success: true, message: `₹${amount} credited to wallet`, new_balance: newBalance });
+  } catch (err) { await t.rollback(); next(err); }
+});
+
+// POST /admin/members/:id/wallet/debit - Deduct wallet balance
+router.post('/members/:id/wallet/debit', [
+  body('amount').isFloat({ min: 1 }).withMessage('Valid amount required'),
+  body('reason').notEmpty().withMessage('Reason required')
+], async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) { await t.rollback(); return res.status(400).json({ success: false, errors: errors.array() }); }
+
+    const member = await Member.findByPk(req.params.id, { transaction: t });
+    if (!member) { await t.rollback(); return res.status(404).json({ success: false, message: 'Member not found' }); }
+
+    const amount = parseFloat(req.body.amount);
+    const currentBalance = parseFloat(member.sita_wallet_balance);
+
+    if (currentBalance < amount) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Insufficient wallet balance' });
+    }
+
+    const newBalance = parseFloat((currentBalance - amount).toFixed(2));
+
+    await member.update({ sita_wallet_balance: newBalance }, { transaction: t });
+    await SITAWalletTransaction.create({
+      member_id: member.id,
+      type: 'debit',
+      amount,
+      balance_after: newBalance,
+      reason: 'admin_debit',
+      description: req.body.reason
+    }, { transaction: t });
+
+    await t.commit();
+    res.json({ success: true, message: `₹${amount} deducted from wallet`, new_balance: newBalance });
   } catch (err) { await t.rollback(); next(err); }
 });
 

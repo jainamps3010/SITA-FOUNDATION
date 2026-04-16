@@ -4,6 +4,7 @@ import '../../modules/splash/splash_view.dart';
 import '../../modules/auth/login_binding.dart';
 import '../../modules/auth/login_view.dart';
 import '../../modules/auth/otp_verify_view.dart';
+import '../../modules/auth/register_binding.dart';
 import '../../modules/auth/register_view.dart';
 import '../../modules/home/home_binding.dart';
 import '../../modules/home/home_view.dart';
@@ -44,7 +45,7 @@ class AppPages {
     GetPage(
       name: Routes.register,
       page: () => const RegisterView(),
-      binding: LoginBinding(),
+      binding: RegisterBinding(),
     ),
     GetPage(
       name: Routes.membershipPayment,

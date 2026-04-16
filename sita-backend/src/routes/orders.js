@@ -177,6 +177,77 @@ router.get('/:id', authenticateMember, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /orders/:id/cancel - Cancel an order with optional wallet refund
+router.post('/:id/cancel', authenticateMember, async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const order = await Order.findOne({
+      where: { id: req.params.id, member_id: req.member.id },
+      include: [{
+        model: OrderItem, as: 'items',
+        include: [{ model: Product, as: 'product', attributes: ['id', 'market_price'] }]
+      }],
+      transaction: t
+    });
+
+    if (!order) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (!['pending', 'confirmed'].includes(order.status)) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Order cannot be cancelled at this stage' });
+    }
+
+    // Count previous cancellations by this member (excluding current order)
+    const cancelCount = await Order.count({
+      where: { member_id: order.member_id, status: 'cancelled' },
+      transaction: t
+    });
+
+    let refundAmount = parseFloat(order.total_amount);
+    let penalty = 0;
+
+    if (cancelCount > 0) {
+      // Penalty = SITA discount savings per item (market_price - sita_price) * qty
+      penalty = order.items.reduce((sum, item) => {
+        const marketPrice = parseFloat(item.product?.market_price || item.unit_price);
+        const savings = (marketPrice - parseFloat(item.unit_price)) * item.quantity;
+        return sum + Math.max(0, savings);
+      }, 0);
+      penalty = parseFloat(penalty.toFixed(2));
+      refundAmount = parseFloat(Math.max(0, refundAmount - penalty).toFixed(2));
+    }
+
+    await order.update({
+      status: 'cancelled',
+      cancelled_at: new Date(),
+      cancellation_reason: req.body.reason || 'Cancelled by member'
+    }, { transaction: t });
+
+    if (refundAmount > 0) {
+      const member = await Member.findByPk(order.member_id, { transaction: t });
+      const newBalance = parseFloat((parseFloat(member.sita_wallet_balance) + refundAmount).toFixed(2));
+      await member.update({ sita_wallet_balance: newBalance }, { transaction: t });
+      await SITAWalletTransaction.create({
+        member_id: order.member_id,
+        type: 'credit',
+        amount: refundAmount,
+        balance_after: newBalance,
+        reason: 'order_refund',
+        description: cancelCount === 0
+          ? `Full refund for cancelled order ${order.order_number}`
+          : `Refund with ₹${penalty} penalty for cancelled order ${order.order_number}`,
+        order_id: order.id
+      }, { transaction: t });
+    }
+
+    await t.commit();
+    res.json({ success: true, refund: refundAmount, penalty, message: 'Order cancelled' });
+  } catch (err) { await t.rollback(); next(err); }
+});
+
 // POST /orders/:id/dispute - Raise a dispute
 router.post('/:id/dispute', authenticateMember, [
   body('reason').isIn([

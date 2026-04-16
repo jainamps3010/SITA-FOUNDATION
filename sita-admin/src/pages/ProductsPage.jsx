@@ -277,7 +277,7 @@ export default function ProductsPage() {
     try {
       await api.put(`/admin/products/${id}/approve`);
       flash('success', 'Product approved — now visible in catalog');
-      load();
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, approved: true } : p));
     } catch { flash('error', 'Failed to approve'); }
   };
 
@@ -286,7 +286,7 @@ export default function ProductsPage() {
     try {
       await api.put(`/admin/products/${id}/reject`);
       flash('success', 'Product rejected');
-      load();
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, approved: false, available: false } : p));
     } catch { flash('error', 'Failed to reject'); }
   };
 

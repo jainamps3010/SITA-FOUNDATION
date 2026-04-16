@@ -5,6 +5,42 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const { Member, Admin } = require('../models');
 const { generateOTP } = require('../utils/helpers');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
+
+// ─── Multer: KYC document / photo uploads ─────────────────────────────────────
+const kycStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../../uploads/kyc');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `${uuidv4()}${ext}`);
+  },
+});
+const kycUpload = multer({
+  storage: kycStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB per file
+  fileFilter: (req, file, cb) => {
+    if (/^image\//i.test(file.mimetype) || file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images and PDFs are allowed'));
+    }
+  },
+});
+const kycFields = kycUpload.fields([
+  { name: 'business_reg_certificate', maxCount: 1 },
+  { name: 'fssai_license',            maxCount: 1 },
+  { name: 'establishment_front_photo',maxCount: 1 },
+  { name: 'billing_counter_photo',    maxCount: 1 },
+  { name: 'kitchen_photo',            maxCount: 1 },
+  { name: 'menu_card_photo',          maxCount: 1 },
+]);
 
 // ─── In-memory OTP store for driver auth ──────────────────────────────────────
 // Accepts both 'mobile' and 'phone' fields from the request body.
@@ -178,55 +214,61 @@ router.post('/member/verify-otp', [
   }
 });
 
-// POST /auth/register — self-registration for new members
-// Accepts: mobile (or phone), name, business_name (or hotel_name), gst_number, address, email, city, state, pincode
-router.post('/register', [
-  body('name').trim().notEmpty().withMessage('Name is required'),
-  body('mobile').optional().matches(/^[6-9]\d{9}$/).withMessage('Valid 10-digit mobile required'),
-  body('phone').optional().matches(/^[6-9]\d{9}$/).withMessage('Valid 10-digit mobile required'),
-  body('business_name').optional().notEmpty(),
-  body('hotel_name').optional().notEmpty(),
-  body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Valid email required'),
-], async (req, res, next) => {
+// POST /auth/register — self-registration (multipart/form-data with KYC uploads)
+router.post('/register', kycFields, async (req, res, next) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
-    }
-
-    // Accept both new (mobile/business_name) and old (phone/hotel_name) field names
     const phone = (req.body.mobile || req.body.phone || '').trim();
     const hotelName = (req.body.business_name || req.body.hotel_name || '').trim();
+    const name = (req.body.name || '').trim();
 
-    if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
+    if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+    if (!phone || !/^[6-9]\d{9}$/.test(phone))
       return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number required' });
-    }
-    if (!hotelName) {
-      return res.status(400).json({ success: false, message: 'Business/hotel name is required' });
-    }
+    if (!hotelName)
+      return res.status(400).json({ success: false, message: 'Business name is required' });
 
     const existing = await Member.findOne({ where: { phone } });
-    if (existing) {
+    if (existing)
       return res.status(409).json({ success: false, message: 'This mobile number is already registered' });
-    }
+
+    // Helper: build a relative URL for an uploaded file
+    const fileUrl = (fieldName) => {
+      const f = req.files?.[fieldName]?.[0];
+      return f ? `/uploads/kyc/${f.filename}` : null;
+    };
+
+    const lat = req.body.latitude  ? parseFloat(req.body.latitude)  : null;
+    const lng = req.body.longitude ? parseFloat(req.body.longitude) : null;
 
     const member = await Member.create({
-      name:          req.body.name.trim(),
+      name,
       phone,
-      email:         req.body.email || null,
+      email:         req.body.email?.trim() || null,
       hotel_name:    hotelName,
       hotel_address: (req.body.address || req.body.hotel_address || '').trim() || null,
-      city:          req.body.city?.trim()    || null,
-      state:         req.body.state?.trim()   || null,
-      pincode:       req.body.pincode?.trim() || null,
+      city:          req.body.city?.trim()     || null,
+      state:         req.body.state?.trim()    || null,
+      pincode:       req.body.pincode?.trim()  || null,
+      district:      req.body.district?.trim() || null,
       gstin:         (req.body.gst_number || req.body.gstin || '').trim() || null,
+      gst_number:    (req.body.gst_number || req.body.gstin || '').trim() || null,
+      category:      req.body.category || null,
+      business_reg_certificate_url:    fileUrl('business_reg_certificate'),
+      fssai_license_url:               fileUrl('fssai_license'),
+      establishment_front_photo_url:   fileUrl('establishment_front_photo'),
+      billing_counter_photo_url:       fileUrl('billing_counter_photo'),
+      kitchen_photo_url:               fileUrl('kitchen_photo'),
+      menu_card_photo_url:             fileUrl('menu_card_photo'),
+      latitude:      lat,
+      longitude:     lng,
+      geo_timestamp: lat ? new Date() : null,
       status:        'pending',
     });
 
     res.status(201).json({
       success: true,
       message: 'Registration submitted. Awaiting admin approval.',
-      member: { id: member.id, name: member.name, phone: member.phone, status: member.status }
+      member: { id: member.id, name: member.name, phone: member.phone, status: member.status },
     });
   } catch (err) { next(err); }
 });
