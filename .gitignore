@@ -1,3 +1,11 @@
 node_modules/
 .flutter-plugins
 .flutter-plugins-dependencies
+*/build/
+*/.dart_tool/
+*/android/.gradle/
+*/ios/Pods/
+*/ios/.symlinks/
+*.iml
+.DS_Store
+.env
