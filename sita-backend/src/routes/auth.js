@@ -3,7 +3,7 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const { Member, Admin } = require('../models');
+const { Member, Admin, SurveyAgent } = require('../models');
 const { generateOTP } = require('../utils/helpers');
 const multer = require('multer');
 const path = require('path');
@@ -47,25 +47,51 @@ const kycFields = kycUpload.fields([
 // Key: mobile number string. Value: { otp, expiresAt }
 const driverOtpStore = new Map();
 
-// POST /auth/send-otp  — driver app login step 1
-router.post('/send-otp', (req, res) => {
+// POST /auth/send-otp  — survey agent login step 1
+router.post('/send-otp', async (req, res) => {
   const mobile = req.body.mobile || req.body.phone;
+  const role = req.body.role; // 'survey_agent' or undefined (delivery driver)
 
   if (!mobile || !/^\d{10}$/.test(mobile)) {
     return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number required' });
   }
 
+  // Survey agent gate: only pre-registered, approved agents may proceed
+  if (role === 'survey_agent') {
+    const agent = await SurveyAgent.findOne({ where: { mobile } });
+    if (!agent) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Contact SITA Foundation admin to get access.',
+        code: 'NOT_REGISTERED'
+      });
+    }
+    if (agent.status === 'blocked') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your access has been blocked. Contact SITA Foundation.',
+        code: 'BLOCKED'
+      });
+    }
+    if (agent.status !== 'approved') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account is pending approval. Please contact admin.',
+        code: 'PENDING'
+      });
+    }
+  }
+
   const otp = generateOTP();
-  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+  const expiresAt = Date.now() + 5 * 60 * 1000;
 
   driverOtpStore.set(mobile, { otp, expiresAt });
-
   console.log(`\nDEV OTP for ${mobile}: ${otp}\n`);
 
   res.json({ success: true, message: 'OTP sent' });
 });
 
-// POST /auth/verify-otp  — driver app login step 2
+// POST /auth/verify-otp  — driver/survey agent login step 2
 router.post('/verify-otp', async (req, res) => {
   const mobile = req.body.mobile || req.body.phone;
   const { otp } = req.body;
@@ -103,10 +129,14 @@ router.post('/verify-otp', async (req, res) => {
     { expiresIn: '7d' }
   );
 
+  // Look up agent status if this is a survey agent login
+  const agent = await SurveyAgent.findOne({ where: { mobile } });
+
   res.json({
     success: true,
     message: 'Login successful',
     token,
+    agent_status: agent ? agent.status : null,
     driver: { phone: mobile, mobile }
   });
 });

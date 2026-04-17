@@ -31,6 +31,7 @@ const SITAWalletTransaction = require('./SITAWalletTransaction')(sequelize);
 const Dispute = require('./Dispute')(sequelize);
 const SurveyEntity = require('./SurveyEntity')(sequelize);
 const ConsumptionSurvey = require('./ConsumptionSurvey')(sequelize);
+const SurveyAgent = require('./SurveyAgent')(sequelize);
 
 // Associations
 Vendor.hasMany(Product, { foreignKey: 'vendor_id', as: 'products' });
@@ -87,5 +88,6 @@ module.exports = {
   SITAWalletTransaction,
   Dispute,
   SurveyEntity,
-  ConsumptionSurvey
+  ConsumptionSurvey,
+  SurveyAgent
 };

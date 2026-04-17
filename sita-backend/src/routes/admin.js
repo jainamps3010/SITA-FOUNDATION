@@ -6,7 +6,8 @@ const { Op } = require('sequelize');
 const { authenticateAdmin } = require('../middleware/auth');
 const {
   Member, Vendor, Product, Order, OrderItem,
-  Dispute, SITAWalletTransaction, Admin, sequelize
+  Dispute, SITAWalletTransaction, Admin, sequelize,
+  SurveyEntity, ConsumptionSurvey, SurveyAgent
 } = require('../models');
 const { paginate, paginatedResponse } = require('../utils/helpers');
 
@@ -752,6 +753,309 @@ router.put('/disputes/:id/reject', [
 
     res.json({ success: true, message: 'Dispute rejected', dispute });
   } catch (err) { next(err); }
+});
+
+// ─── SURVEY AGENTS ───────────────────────────────────────────────────────────
+
+// POST /admin/survey-agents/add  — admin pre-registers an agent (approved immediately)
+router.post('/survey-agents/add', async (req, res, next) => {
+  try {
+    const { name, mobile, district, taluka } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ success: false, message: 'Agent name is required' });
+    if (!mobile || !/^\d{10}$/.test(mobile)) return res.status(400).json({ success: false, message: 'Valid 10-digit mobile required' });
+    if (!district || !district.trim()) return res.status(400).json({ success: false, message: 'District is required' });
+
+    const existing = await SurveyAgent.findOne({ where: { mobile } });
+    if (existing) return res.status(409).json({ success: false, message: 'Agent with this mobile already exists' });
+
+    const agent = await SurveyAgent.create({
+      name: name.trim(),
+      mobile,
+      district: district.trim(),
+      taluka: taluka?.trim() || null,
+      status: 'approved',
+      added_by: req.admin.id
+    });
+
+    res.status(201).json({ success: true, message: 'Agent added successfully', data: agent });
+  } catch (err) { next(err); }
+});
+
+// DELETE /admin/survey-agents/:id
+router.delete('/survey-agents/:id', async (req, res, next) => {
+  try {
+    const agent = await SurveyAgent.findByPk(req.params.id);
+    if (!agent) return res.status(404).json({ success: false, message: 'Agent not found' });
+    await agent.destroy();
+    res.json({ success: true, message: 'Agent deleted' });
+  } catch (err) { next(err); }
+});
+
+// GET /admin/survey-agents
+router.get('/survey-agents', async (req, res, next) => {
+  try {
+    const { status, page = 1, limit = 50 } = req.query;
+    const where = {};
+    if (status) where.status = status;
+
+    const { count, rows } = await SurveyAgent.findAndCountAll({
+      where,
+      order: [['created_at', 'DESC']],
+      limit: Number(limit),
+      offset: (Number(page) - 1) * Number(limit)
+    });
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: { total: count, page: Number(page), limit: Number(limit), pages: Math.ceil(count / Number(limit)) }
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /admin/survey-agents/:id/approve
+router.post('/survey-agents/:id/approve', async (req, res, next) => {
+  try {
+    const agent = await SurveyAgent.findByPk(req.params.id);
+    if (!agent) return res.status(404).json({ success: false, message: 'Agent not found' });
+
+    await agent.update({ status: 'approved', added_by: req.admin.id });
+    res.json({ success: true, message: 'Agent approved', data: agent });
+  } catch (err) { next(err); }
+});
+
+// POST /admin/survey-agents/:id/block
+router.post('/survey-agents/:id/block', async (req, res, next) => {
+  try {
+    const agent = await SurveyAgent.findByPk(req.params.id);
+    if (!agent) return res.status(404).json({ success: false, message: 'Agent not found' });
+
+    await agent.update({ status: 'blocked' });
+    res.json({ success: true, message: 'Agent blocked', data: agent });
+  } catch (err) { next(err); }
+});
+
+// POST /admin/survey-agents/:id/unblock
+router.post('/survey-agents/:id/unblock', async (req, res, next) => {
+  try {
+    const agent = await SurveyAgent.findByPk(req.params.id);
+    if (!agent) return res.status(404).json({ success: false, message: 'Agent not found' });
+
+    await agent.update({ status: 'approved' });
+    res.json({ success: true, message: 'Agent unblocked', data: agent });
+  } catch (err) { next(err); }
+});
+
+// ─── SURVEY PHOTOS ────────────────────────────────────────────────────────────
+
+// GET /admin/survey-photos
+router.get('/survey-photos', async (req, res, next) => {
+  try {
+    const { district, entity_type, date_from, date_to, page = 1, limit = 20 } = req.query;
+
+    const entityWhere = {};
+    if (district) entityWhere.district = district;
+    if (entity_type) entityWhere.entity_type = entity_type;
+    if (date_from || date_to) {
+      entityWhere.created_at = {};
+      if (date_from) entityWhere.created_at[Op.gte] = new Date(date_from);
+      if (date_to) entityWhere.created_at[Op.lte] = new Date(date_to + 'T23:59:59Z');
+    }
+
+    const { count, rows } = await SurveyEntity.findAndCountAll({
+      where: entityWhere,
+      include: [{
+        model: ConsumptionSurvey,
+        as: 'consumption_data',
+        attributes: ['id', 'product_name', 'invoice_photo_url', 'created_at'],
+        required: false
+      }],
+      order: [['created_at', 'DESC']],
+      limit: Number(limit),
+      offset: (Number(page) - 1) * Number(limit),
+      distinct: true
+    });
+
+    const data = rows.map(entity => {
+      const items = entity.consumption_data || [];
+      const photoUrl = items.find(i => i.invoice_photo_url)?.invoice_photo_url || null;
+      return {
+        id: entity.id,
+        entity_name: entity.entity_name,
+        owner_name: entity.owner_name,
+        entity_type: entity.entity_type,
+        district: entity.district,
+        taluka: entity.taluka,
+        agent_id: entity.agent_id,
+        survey_date: entity.created_at,
+        products_count: items.length,
+        invoice_photo_url: photoUrl
+      };
+    });
+
+    res.json({
+      success: true,
+      data,
+      pagination: {
+        total: count,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(count / Number(limit))
+      }
+    });
+  } catch (err) { next(err); }
+});
+
+// DELETE /admin/survey-photos/bulk — clear photos for selected entity ids
+router.delete('/survey-photos/bulk', async (req, res, next) => {
+  try {
+    console.log('[DELETE /survey-photos/bulk] body:', req.body);
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ success: false, message: 'ids array required' });
+    const [count] = await ConsumptionSurvey.update(
+      { invoice_photo_url: null },
+      { where: { entity_id: { [Op.in]: ids } } }
+    );
+    console.log('[DELETE /survey-photos/bulk] updated rows:', count);
+    res.json({ success: true, deleted: count });
+  } catch (err) {
+    console.error('[DELETE /survey-photos/bulk] error:', err.message);
+    next(err);
+  }
+});
+
+// DELETE /admin/survey-photos/delete-all — clear all invoice photos
+router.delete('/survey-photos/delete-all', async (req, res, next) => {
+  try {
+    console.log('[DELETE /survey-photos/delete-all] called');
+    const [count] = await ConsumptionSurvey.update(
+      { invoice_photo_url: null },
+      { where: { invoice_photo_url: { [Op.ne]: null } } }
+    );
+    console.log('[DELETE /survey-photos/delete-all] updated rows:', count);
+    res.json({ success: true, deleted: count });
+  } catch (err) {
+    console.error('[DELETE /survey-photos/delete-all] error:', err.message);
+    next(err);
+  }
+});
+
+// DELETE /admin/survey-photos/:id — clear invoice photo for entity (id = entity id)
+router.delete('/survey-photos/:id', async (req, res, next) => {
+  try {
+    console.log('[DELETE /survey-photos/:id] id:', req.params.id);
+    const [count] = await ConsumptionSurvey.update(
+      { invoice_photo_url: null },
+      { where: { entity_id: req.params.id } }
+    );
+    console.log('[DELETE /survey-photos/:id] updated rows:', count);
+    res.json({ success: true, deleted: count });
+  } catch (err) {
+    console.error('[DELETE /survey-photos/:id] error:', err.message);
+    next(err);
+  }
+});
+
+// ─── SURVEY DATA ──────────────────────────────────────────────────────────────
+
+// GET /admin/survey-data
+router.get('/survey-data', async (req, res, next) => {
+  try {
+    const { district, entity_type, category, date_from, date_to } = req.query;
+
+    const entityWhere = {};
+    if (district) entityWhere.district = district;
+    if (entity_type) entityWhere.entity_type = entity_type;
+
+    const productWhere = {};
+    if (category) productWhere.category = category;
+    if (date_from || date_to) {
+      productWhere.created_at = {};
+      if (date_from) productWhere.created_at[Op.gte] = new Date(date_from);
+      if (date_to) productWhere.created_at[Op.lte] = new Date(date_to + 'T23:59:59Z');
+    }
+
+    const rows = await ConsumptionSurvey.findAll({
+      where: productWhere,
+      include: [{
+        model: SurveyEntity,
+        as: 'entity',
+        where: entityWhere,
+        attributes: ['id', 'entity_name', 'owner_name', 'entity_type', 'district', 'taluka', 'agent_id']
+      }],
+      order: [['created_at', 'DESC']]
+    });
+
+    // Summary stats
+    const entityIds = new Set(rows.map(r => r.entity_id));
+    const demandMap = {};
+    rows.forEach(r => {
+      demandMap[r.product_name] = (demandMap[r.product_name] || 0) + Number(r.monthly_quantity);
+    });
+    const topProduct = Object.entries(demandMap).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+    const data = rows.map(r => ({
+      id: r.id,
+      entity_id: r.entity_id,
+      entity_name: r.entity?.entity_name,
+      entity_type: r.entity?.entity_type,
+      district: r.entity?.district,
+      taluka: r.entity?.taluka,
+      agent_id: r.entity?.agent_id,
+      product_name: r.product_name,
+      brand: r.brand,
+      category: r.category,
+      monthly_quantity: r.monthly_quantity,
+      annual_quantity: r.annual_quantity,
+      unit: r.unit,
+      price_per_unit: r.price_per_unit,
+      survey_date: r.created_at
+    }));
+
+    res.json({
+      success: true,
+      data,
+      summary: {
+        total_entities: entityIds.size,
+        total_products: rows.length,
+        top_product: topProduct
+      }
+    });
+  } catch (err) { next(err); }
+});
+
+// DELETE /admin/survey/bulk — delete multiple entities + their consumption records
+router.delete('/survey/bulk', async (req, res, next) => {
+  try {
+    console.log('[DELETE /survey/bulk] body:', req.body);
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ success: false, message: 'ids array required' });
+    await ConsumptionSurvey.destroy({ where: { entity_id: { [Op.in]: ids } } });
+    await SurveyEntity.destroy({ where: { id: { [Op.in]: ids } } });
+    console.log('[DELETE /survey/bulk] deleted entities:', ids.length);
+    res.json({ success: true, deleted: ids.length });
+  } catch (err) {
+    console.error('[DELETE /survey/bulk] error:', err.message);
+    next(err);
+  }
+});
+
+// DELETE /admin/survey/:id — delete entity + all its consumption records
+router.delete('/survey/:id', async (req, res, next) => {
+  try {
+    console.log('[DELETE /survey/:id] id:', req.params.id);
+    const entity = await SurveyEntity.findByPk(req.params.id);
+    if (!entity) return res.status(404).json({ success: false, message: 'Survey not found' });
+    await ConsumptionSurvey.destroy({ where: { entity_id: req.params.id } });
+    await entity.destroy();
+    console.log('[DELETE /survey/:id] deleted entity:', req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /survey/:id] error:', err.message);
+    next(err);
+  }
 });
 
 module.exports = router;

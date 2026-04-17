@@ -1,6 +1,6 @@
 'use strict';
 
-const { SurveyEntity, ConsumptionSurvey } = require('../models');
+const { SurveyEntity, ConsumptionSurvey, SurveyAgent } = require('../models');
 
 // POST /api/v1/survey/entity
 const createEntity = async (req, res, next) => {
@@ -16,6 +16,14 @@ const createEntity = async (req, res, next) => {
 
     if (!/^\d{10}$/.test(mobile)) {
       return res.status(400).json({ success: false, message: 'mobile must be a 10-digit number' });
+    }
+
+    const agent = await SurveyAgent.findOne({ where: { mobile: req.agent.phone } });
+    if (!agent || agent.status === 'pending') {
+      return res.status(403).json({ success: false, message: 'Your account is pending approval. Please contact admin.' });
+    }
+    if (agent.status === 'blocked') {
+      return res.status(403).json({ success: false, message: 'Your account has been blocked. Please contact SITA Foundation.' });
     }
 
     const entity = await SurveyEntity.create({
@@ -41,6 +49,7 @@ const createEntity = async (req, res, next) => {
 const getEntities = async (req, res, next) => {
   try {
     const entities = await SurveyEntity.findAll({
+      where: { agent_id: req.agent.phone },
       attributes: [
         'id', 'agent_id', 'entity_name', 'owner_name', 'mobile',
         'entity_type', 'address', 'district', 'taluka', 'created_at'
@@ -52,16 +61,50 @@ const getEntities = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// POST /api/v1/survey/scan-invoice
+const scanInvoice = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Invoice image is required' });
+    }
+    const invoicePhotoUrl = `/uploads/invoices/${req.file.filename}`;
+    // Dummy OCR data — replace with Google Vision API when ready
+    res.json({
+      success: true,
+      invoice_photo_url: invoicePhotoUrl,
+      extracted_data: {
+        vendor_name: 'Mahavir Traders, Surat',
+        invoice_date: '15/04/2026',
+        products: [
+          { name: 'Sunflower Oil', quantity: 50, unit: 'Liters', price: 95 },
+          { name: 'Wheat Flour', quantity: 100, unit: 'Kg', price: 36 },
+          { name: 'Sugar', quantity: 75, unit: 'Kg', price: 34 },
+          { name: 'Toor Dal', quantity: 30, unit: 'Kg', price: 96 }
+        ]
+      }
+    });
+  } catch (err) { next(err); }
+};
+
 // POST /api/v1/survey/consumption
 const submitConsumption = async (req, res, next) => {
   try {
-    const { entity_id, products } = req.body;
+    const { entity_id, products, invoice_photo_url } = req.body;
 
     if (!entity_id) {
       return res.status(400).json({ success: false, message: 'entity_id is required' });
     }
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ success: false, message: 'products must be a non-empty array' });
+    }
+
+    // Check agent approval status
+    const agent = await SurveyAgent.findOne({ where: { mobile: req.agent.phone } });
+    if (!agent || agent.status === 'pending') {
+      return res.status(403).json({ success: false, message: 'Your account is pending approval. Please contact admin.' });
+    }
+    if (agent.status === 'blocked') {
+      return res.status(403).json({ success: false, message: 'Your account has been blocked. Please contact SITA Foundation.' });
     }
 
     const entity = await SurveyEntity.findByPk(entity_id);
@@ -80,6 +123,7 @@ const submitConsumption = async (req, res, next) => {
 
     const rows = products.map((p) => ({
       entity_id,
+      invoice_photo_url: invoice_photo_url || null,
       product_name: p.product_name,
       brand: p.brand || null,
       category: p.category,
@@ -91,6 +135,12 @@ const submitConsumption = async (req, res, next) => {
 
     const created = await ConsumptionSurvey.bulkCreate(rows);
 
+    // Update agent's survey stats
+    await agent.update({
+      total_surveys: (agent.total_surveys || 0) + 1,
+      last_survey_at: new Date()
+    });
+
     res.status(201).json({
       success: true,
       message: 'Consumption data submitted successfully',
@@ -99,4 +149,4 @@ const submitConsumption = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { createEntity, getEntities, submitConsumption };
+module.exports = { createEntity, getEntities, submitConsumption, scanInvoice };

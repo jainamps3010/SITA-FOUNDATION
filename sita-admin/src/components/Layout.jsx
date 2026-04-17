@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 
@@ -10,7 +10,13 @@ const icons = {
   products: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
   orders: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
   disputes: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
-  logout: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+  logout: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
+  surveyphotos: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+  agents: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+  survey: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>,
+  chevronDown: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{width:14,height:14}}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
+  chevronRight: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{width:14,height:14}}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>,
+  surveydata: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
 };
 
 const navItems = [
@@ -22,6 +28,12 @@ const navItems = [
   { to: '/disputes', label: 'Disputes', icon: 'disputes' },
 ];
 
+const surveySubItems = [
+  { to: '/survey-photos', label: 'Survey Photos', icon: 'surveyphotos' },
+  { to: '/survey-agents', label: 'Survey Agents', icon: 'agents' },
+  { to: '/survey-data',   label: 'Survey Data',   icon: 'surveydata'  },
+];
+
 const pageTitles = {
   '/dashboard': 'Dashboard',
   '/members': 'Members Management',
@@ -29,14 +41,23 @@ const pageTitles = {
   '/products': 'Products Management',
   '/orders': 'Orders Management',
   '/disputes': 'Disputes Management',
+  '/survey-photos': 'Survey — Photos',
+  '/survey-agents': 'Survey — Agents',
+  '/survey-data':   'Survey — Data',
 };
 
 export default function Layout() {
   const { admin, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [lang, setLang] = useState('EN');
-  const path = window.location.pathname;
-  const title = pageTitles[path] || 'SITA Foundation';
+  const isSurveyPath = location.pathname.startsWith('/survey');
+  const [surveyOpen, setSurveyOpen] = useState(isSurveyPath);
+  const title = pageTitles[location.pathname] || 'SITA Foundation';
+
+  useEffect(() => {
+    if (isSurveyPath) setSurveyOpen(true);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -67,6 +88,32 @@ export default function Layout() {
               {item.label}
             </NavLink>
           ))}
+
+          {/* Survey section with sub-items */}
+          <div
+            className={`nav-item${isSurveyPath ? ' active' : ''}`}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+            onClick={() => setSurveyOpen(o => !o)}
+          >
+            {icons.survey}
+            <span style={{ flex: 1 }}>Survey</span>
+            {surveyOpen ? icons.chevronDown : icons.chevronRight}
+          </div>
+          {surveyOpen && (
+            <div style={{ marginLeft: 12, borderLeft: '2px solid rgba(255,255,255,0.15)', paddingLeft: 4 }}>
+              {surveySubItems.map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                  style={{ fontSize: 13, paddingLeft: 16 }}
+                >
+                  {icons[item.icon]}
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          )}
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-user">

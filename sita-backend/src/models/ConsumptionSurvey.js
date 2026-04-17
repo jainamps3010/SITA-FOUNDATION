@@ -44,6 +44,10 @@ module.exports = (sequelize) => {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
       defaultValue: 0
+    },
+    invoice_photo_url: {
+      type: DataTypes.STRING(500),
+      allowNull: true
     }
   }, {
     tableName: 'consumption_surveys',

@@ -9,6 +9,9 @@ import VendorsPage from './pages/VendorsPage';
 import ProductsPage from './pages/ProductsPage';
 import OrdersPage from './pages/OrdersPage';
 import DisputesPage from './pages/DisputesPage';
+import SurveyPhotosPage from './pages/SurveyPhotosPage';
+import SurveyAgentsPage from './pages/SurveyAgentsPage';
+import SurveyDataPage from './pages/SurveyDataPage';
 
 const ProtectedRoute = ({ children }) => {
   const { admin, loading } = useAuth();
@@ -34,6 +37,9 @@ const App = () => (
           <Route path="products" element={<ProductsPage />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="disputes" element={<DisputesPage />} />
+          <Route path="survey-photos" element={<SurveyPhotosPage />} />
+          <Route path="survey-agents" element={<SurveyAgentsPage />} />
+          <Route path="survey-data" element={<SurveyDataPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

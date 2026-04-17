@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 const baseUrl = 'http://10.0.2.2:3000/api/v1';
 
@@ -130,6 +132,7 @@ class SitaSurveyApp extends StatelessWidget {
 class Session {
   static String? token;
   static String? agentName;
+  static String agentStatus = 'pending'; // 'pending', 'approved', 'blocked'
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -287,16 +290,15 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _sendOtp() async {
     final phone = _phoneCtrl.text.trim();
     if (phone.length != 10) {
-      showSnack(context, 'Enter a valid 10-digit mobile number',
-          error: true);
+      showSnack(context, 'Enter a valid 10-digit mobile number', error: true);
       return;
     }
     setState(() => _loading = true);
     try {
       final res = await http.post(
         Uri.parse('$baseUrl/auth/send-otp'),
-        headers: _headers,
-        body: jsonEncode({'phone': phone}),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'phone': phone, 'role': 'survey_agent'}),
       );
       final body = jsonDecode(res.body);
       if (!mounted) return;
@@ -304,11 +306,19 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => OtpScreen(phone: phone)));
       } else {
-        showSnack(context, body['message'] ?? 'Failed to send OTP',
-            error: true);
+        final code = body['code'] as String?;
+        String msg;
+        if (code == 'NOT_REGISTERED') {
+          msg = 'You are not registered as a Survey Agent. Please contact SITA Foundation to get access.';
+        } else if (code == 'BLOCKED') {
+          msg = 'Your access has been blocked. Contact SITA Foundation.';
+        } else {
+          msg = body['message'] ?? 'Failed to send OTP';
+        }
+        showSnack(context, msg, error: true);
       }
     } catch (e) {
-      if (mounted) showSnack(context, 'Network error', error: true);
+      if (mounted) showSnack(context, 'Network error. Check your connection.', error: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -501,9 +511,20 @@ class _OtpScreenState extends State<OtpScreen> {
             body['name'] ??
             body['data']?['agent']?['name'] ??
             'Agent';
+        Session.agentStatus = body['agent_status'] ?? 'approved';
+
+        Widget nextScreen;
+        if (Session.agentStatus == 'blocked') {
+          nextScreen = const BlockedScreen();
+        } else if (Session.agentStatus == 'pending') {
+          nextScreen = const PendingApprovalScreen();
+        } else {
+          nextScreen = const HomeScreen();
+        }
+
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => nextScreen),
           (_) => false,
         );
       } else {
@@ -597,6 +618,174 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 }
 
+// ─── Pending Approval ──────────────────────────────────────────────────────
+class PendingApprovalScreen extends StatelessWidget {
+  const PendingApprovalScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: kSecondary.withOpacity(0.3), width: 2),
+                ),
+                child: ClipOval(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Pending Approval',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: kPrimary),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kSecondary.withOpacity(0.3)),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.hourglass_empty_rounded, color: kSecondary, size: 40),
+                    SizedBox(height: 12),
+                    Text(
+                      'Your account is pending admin approval.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kTextPrimary),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Please wait for SITA Foundation to review and approve your account. You will be able to submit surveys once approved.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: kTextSecondary, height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('Back to Login'),
+                onPressed: () {
+                  Session.token = null;
+                  Session.agentName = null;
+                  Session.agentStatus = 'pending';
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (_) => false,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Blocked ───────────────────────────────────────────────────────────────
+class BlockedScreen extends StatelessWidget {
+  const BlockedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: kError.withOpacity(0.3), width: 2),
+                ),
+                child: const Icon(Icons.block_rounded, color: kError, size: 48),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Account Blocked',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: kError),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kError.withOpacity(0.2)),
+                ),
+                child: const Column(
+                  children: [
+                    Text(
+                      'Your account has been blocked.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kTextPrimary),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Please contact SITA Foundation for assistance.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: kTextSecondary, height: 1.5),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'support@sitafoundation.org',
+                      style: TextStyle(fontSize: 13, color: kError, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: kError,
+                  side: const BorderSide(color: kError),
+                ),
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('Back to Login'),
+                onPressed: () {
+                  Session.token = null;
+                  Session.agentName = null;
+                  Session.agentStatus = 'pending';
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (_) => false,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Home ──────────────────────────────────────────────────────────────────
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -605,7 +794,24 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SITA Survey'),
+        title: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.asset('assets/logo.png', fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text('SITA Survey'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),
@@ -613,6 +819,7 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               Session.token = null;
               Session.agentName = null;
+              Session.agentStatus = 'pending';
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -689,6 +896,18 @@ class HomeScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (_) => const SurveysListScreen())),
+          ),
+          const SizedBox(height: 12),
+          _HomeActionCard(
+            icon: Icons.history_rounded,
+            iconBg: const Color(0xFFF3E5F5),
+            iconColor: const Color(0xFF7B1FA2),
+            title: 'My Surveys',
+            subtitle: 'View your submitted surveys',
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const MySurveysScreen())),
           ),
         ],
       ),
@@ -1065,27 +1284,113 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
   final _formKey = GlobalKey<FormState>();
   final List<_ProductEntry> _products = [_ProductEntry()];
   bool _loading = false;
+  bool _scanningInvoice = false;
+  String? _invoicePhotoUrl;
+  String? _vendorName;
+  String _mode = 'none'; // 'none', 'scan', 'manual'
 
   static const categories = ['Oils', 'Grains', 'Spices', 'Gas', 'Cleaning'];
   static const units = ['Kg', 'Liters', 'Bags', 'Cylinders'];
+
+  static String _guessCategory(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('oil')) return 'Oils';
+    if (n.contains('gas') || n.contains('cylinder')) return 'Gas';
+    if (n.contains('soap') || n.contains('detergent') || n.contains('clean')) return 'Cleaning';
+    if (n.contains('spice') || n.contains('chili') || n.contains('pepper') ||
+        n.contains('turmeric') || n.contains('masala') || n.contains('cumin') ||
+        n.contains('dal') || n.contains('daal')) return 'Spices';
+    return 'Grains';
+  }
+
+  Future<void> _scanInvoice() async {
+    final picker = ImagePicker();
+    final photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (photo == null) return;
+
+    setState(() => _scanningInvoice = true);
+    try {
+      final req = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/survey/scan-invoice'),
+      );
+      if (Session.token != null) {
+        req.headers['Authorization'] = 'Bearer ${Session.token}';
+      }
+      req.files.add(await http.MultipartFile.fromPath('invoice', photo.path));
+
+      final streamed = await req.send();
+      final res = await http.Response.fromStream(streamed);
+      final body = jsonDecode(res.body);
+
+      if (!mounted) return;
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final extracted = body['extracted_data'] as Map<String, dynamic>;
+        final photoUrl = body['invoice_photo_url'] as String?;
+        final products = extracted['products'] as List? ?? [];
+
+        setState(() {
+          _invoicePhotoUrl = photoUrl;
+          _vendorName = extracted['vendor_name'] as String?;
+          _products.clear();
+          for (final p in products) {
+            final entry = _ProductEntry();
+            final name = p['name'] ?? '';
+            entry.productCtrl.text = name;
+            entry.quantityCtrl.text = '${p['quantity'] ?? ''}';
+            entry.priceCtrl.text = '${p['price'] ?? ''}';
+            final rawUnit = p['unit'] as String?;
+            entry.unit = units.contains(rawUnit) ? rawUnit : null;
+            entry.category = _guessCategory(name);
+            _products.add(entry);
+          }
+          if (_products.isEmpty) _products.add(_ProductEntry());
+        });
+
+        if (mounted) {
+          showSnack(context,
+              products.isEmpty
+                  ? 'Invoice saved. No products extracted.'
+                  : 'Invoice scanned! ${products.length} products found');
+        }
+      } else {
+        showSnack(context, body['message'] ?? 'Scan failed', error: true);
+      }
+    } catch (e) {
+      if (mounted) showSnack(context, 'Network error during scan', error: true);
+    } finally {
+      if (mounted) setState(() => _scanningInvoice = false);
+    }
+  }
 
   int _annualQty(int index) {
     return (int.tryParse(_products[index].quantityCtrl.text) ?? 0) * 12;
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    for (int i = 0; i < _products.length; i++) {
-      final p = _products[i];
-      if (p.category == null) {
-        showSnack(context, 'Select category for product ${i + 1}',
-            error: true);
+    if (_mode == 'manual') {
+      if (!_formKey.currentState!.validate()) return;
+      for (int i = 0; i < _products.length; i++) {
+        final p = _products[i];
+        if (p.category == null) {
+          showSnack(context, 'Select category for product ${i + 1}', error: true);
+          return;
+        }
+        if (p.unit == null) {
+          showSnack(context, 'Select unit for product ${i + 1}', error: true);
+          return;
+        }
+      }
+    } else if (_mode == 'scan') {
+      if (_invoicePhotoUrl == null) {
+        showSnack(context, 'Please scan an invoice first', error: true);
         return;
       }
-      if (p.unit == null) {
-        showSnack(context, 'Select unit for product ${i + 1}',
-            error: true);
-        return;
+      for (int i = 0; i < _products.length; i++) {
+        if (_products[i].productCtrl.text.trim().isEmpty) {
+          showSnack(context, 'Product ${i + 1} has no name', error: true);
+          return;
+        }
       }
     }
     setState(() => _loading = true);
@@ -1111,6 +1416,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
         body: jsonEncode({
           'entity_id': widget.entityId,
           'products': productsData,
+          if (_invoicePhotoUrl != null) 'invoice_photo_url': _invoicePhotoUrl,
         }),
       );
       final body = jsonDecode(res.body);
@@ -1151,50 +1457,207 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  // ─── Entity ID Banner ─────────────────────────────────
                   if (widget.entityId != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 14),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE0F2F1),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: kSuccess.withOpacity(0.4)),
+                        border: Border.all(color: kSuccess.withOpacity(0.4)),
                       ),
                       child: Row(children: [
-                        const Icon(Icons.check_circle_outline,
-                            color: kSuccess, size: 18),
+                        const Icon(Icons.check_circle_outline, color: kSuccess, size: 18),
                         const SizedBox(width: 8),
                         Text('Entity ID: ${widget.entityId}',
-                            style: const TextStyle(
-                                color: kSuccess,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13)),
+                            style: const TextStyle(color: kSuccess, fontWeight: FontWeight.w600, fontSize: 13)),
                       ]),
                     ),
-                  ...List.generate(
-                      _products.length, (i) => _buildProductCard(i)),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: const Text('Add Another Product'),
-                    onPressed: () =>
-                        setState(() => _products.add(_ProductEntry())),
-                  ),
+
+                  // ─── Mode Toggle ──────────────────────────────────────
+                  Row(children: [
+                    Expanded(child: _ModeButton(
+                      icon: Icons.document_scanner_outlined,
+                      label: 'Scan Invoice',
+                      selected: _mode == 'scan',
+                      onTap: () => setState(() => _mode = 'scan'),
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: _ModeButton(
+                      icon: Icons.edit_outlined,
+                      label: 'Add Manually',
+                      selected: _mode == 'manual',
+                      onTap: () => setState(() => _mode = 'manual'),
+                    )),
+                  ]),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _loading ? null : _submit,
-                    icon: const Icon(Icons.send_rounded, size: 18),
-                    label: _loading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Text('Submit Survey'),
-                  ),
-                  const SizedBox(height: 24),
+
+                  // ─── Scan Mode ────────────────────────────────────────
+                  if (_mode == 'scan') ...[
+                    if (_invoicePhotoUrl == null) ...[
+                      // Camera prompt
+                      GestureDetector(
+                        onTap: _scanningInvoice ? null : _scanInvoice,
+                        child: Container(
+                          height: 160,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _scanningInvoice ? kPrimary.withOpacity(0.3) : kPrimary.withOpacity(0.5),
+                              width: 2,
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_scanningInvoice)
+                                const CircularProgressIndicator(color: kPrimary)
+                              else ...[
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: kPrimaryLight,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(Icons.camera_alt_outlined, color: kPrimary, size: 30),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text('Tap to open camera',
+                                    style: TextStyle(fontWeight: FontWeight.w600, color: kPrimary, fontSize: 15)),
+                                const SizedBox(height: 4),
+                                const Text('Take a photo of the invoice',
+                                    style: TextStyle(color: kTextSecondary, fontSize: 12)),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ] else ...[
+                      // Scanned invoice display
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8EAF6),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: kPrimary.withOpacity(0.2)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.receipt_long_outlined, color: kPrimary, size: 20),
+                              const SizedBox(width: 8),
+                              const Text('Invoice Scanned',
+                                  style: TextStyle(fontWeight: FontWeight.w700, color: kPrimary, fontSize: 14)),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: _scanInvoice,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: kPrimary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(children: [
+                                    Icon(Icons.refresh, color: kPrimary, size: 14),
+                                    SizedBox(width: 4),
+                                    Text('Rescan', style: TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                                  ]),
+                                ),
+                              ),
+                            ]),
+                            if (_vendorName != null && _vendorName!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text('Vendor: $_vendorName',
+                                  style: const TextStyle(color: kTextSecondary, fontSize: 13)),
+                            ],
+                            const SizedBox(height: 12),
+                            // Read-only product list
+                            ..._products.asMap().entries.map((e) {
+                              final idx = e.key;
+                              final p = e.value;
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: kDivider),
+                                ),
+                                child: Row(children: [
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: kSecondary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Center(
+                                      child: Text('${idx + 1}',
+                                          style: const TextStyle(fontWeight: FontWeight.w800, color: kSecondaryDark, fontSize: 12)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(p.productCtrl.text,
+                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                        Text('${p.quantityCtrl.text} ${p.unit ?? ''} · ₹${p.priceCtrl.text}',
+                                            style: const TextStyle(color: kTextSecondary, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                ]),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: const Text('Edit products manually'),
+                        style: TextButton.styleFrom(foregroundColor: kPrimary),
+                        onPressed: () => setState(() => _mode = 'manual'),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+
+                  // ─── Manual Mode ──────────────────────────────────────
+                  if (_mode == 'manual') ...[
+                    ...List.generate(_products.length, (i) => _buildProductCard(i)),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text('Add Another Product'),
+                      onPressed: () => setState(() => _products.add(_ProductEntry())),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // ─── Submit ───────────────────────────────────────────
+                  if (_mode != 'none') ...[
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: _loading ? null : _submit,
+                      icon: const Icon(Icons.send_rounded, size: 18),
+                      label: _loading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Submit Survey'),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ],
               ),
             ),
@@ -1376,6 +1839,57 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Mode Toggle Button ────────────────────────────────────────────────────
+class _ModeButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ModeButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: selected ? kPrimary : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? kPrimary : kDivider,
+            width: selected ? 2 : 1,
+          ),
+          boxShadow: selected
+              ? [BoxShadow(color: kPrimary.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3))]
+              : [],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: selected ? Colors.white : kTextSecondary, size: 26),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : kTextSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1598,4 +2112,353 @@ class _SurveysListScreenState extends State<SurveysListScreen> {
                     ),
     );
   }
+}
+
+// ─── My Surveys ────────────────────────────────────────────────────────────
+class MySurveysScreen extends StatefulWidget {
+  const MySurveysScreen({super.key});
+  @override
+  State<MySurveysScreen> createState() => _MySurveysScreenState();
+}
+
+class _MySurveysScreenState extends State<MySurveysScreen> {
+  List<dynamic> _surveys = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<void> _fetch() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/survey/my-surveys'),
+        headers: _headers,
+      );
+      final body = jsonDecode(res.body);
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() { _surveys = body['data'] ?? []; _loading = false; });
+      } else {
+        setState(() { _error = body['message'] ?? 'Failed to load'; _loading = false; });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = 'Network error'; _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Surveys')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: kPrimary))
+          : _error != null
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.error_outline, color: kError, size: 40),
+                  const SizedBox(height: 12),
+                  Text(_error!, style: const TextStyle(color: kError)),
+                  const SizedBox(height: 16),
+                  TextButton(onPressed: _fetch, child: const Text('Retry')),
+                ]))
+              : _surveys.isEmpty
+                  ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.history_rounded, size: 56, color: kDivider),
+                      SizedBox(height: 12),
+                      Text('No surveys submitted yet', style: TextStyle(color: kTextSecondary)),
+                    ]))
+                  : RefreshIndicator(
+                      onRefresh: _fetch,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _surveys.length,
+                        itemBuilder: (ctx, i) {
+                          final s = _surveys[i];
+                          final products = (s['products'] as List?) ?? [];
+                          final photoUrl = s['invoice_photo_url'] as String?;
+                          final date = s['survey_date'] != null
+                              ? DateTime.tryParse(s['survey_date'])
+                              : null;
+                          final dateStr = date != null
+                              ? '${date.day}/${date.month}/${date.year}'
+                              : '—';
+
+                          return GestureDetector(
+                            onTap: () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => SurveyDetailScreen(survey: s))),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: kDivider, width: 0.8),
+                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    // Invoice thumbnail or icon
+                                    Container(
+                                      width: 56,
+                                      height: 56,
+                                      decoration: BoxDecoration(
+                                        color: kPrimaryLight,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: photoUrl != null
+                                          ? ClipRRect(
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: Image.network(
+                                                'http://10.0.2.2:3000$photoUrl',
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    const Icon(Icons.receipt_long_outlined, color: kPrimary, size: 28),
+                                              ),
+                                            )
+                                          : const Icon(Icons.store_outlined, color: kPrimary, size: 28),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(children: [
+                                            Expanded(
+                                              child: Text(s['entity_name'] ?? '—',
+                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: kPrimaryLight,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(s['entity_type'] ?? '',
+                                                  style: const TextStyle(fontSize: 11, color: kPrimary, fontWeight: FontWeight.w700)),
+                                            ),
+                                          ]),
+                                          const SizedBox(height: 4),
+                                          Row(children: [
+                                            const Icon(Icons.calendar_today_outlined, size: 12, color: kTextSecondary),
+                                            const SizedBox(width: 4),
+                                            Text(dateStr, style: const TextStyle(fontSize: 12, color: kTextSecondary)),
+                                            const SizedBox(width: 12),
+                                            const Icon(Icons.inventory_2_outlined, size: 12, color: kTextSecondary),
+                                            const SizedBox(width: 4),
+                                            Text('${products.length} products',
+                                                style: const TextStyle(fontSize: 12, color: kTextSecondary)),
+                                          ]),
+                                          const SizedBox(height: 4),
+                                          Row(children: [
+                                            Container(
+                                              width: 8, height: 8,
+                                              decoration: const BoxDecoration(color: kSuccess, shape: BoxShape.circle),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            const Text('Synced',
+                                                style: TextStyle(fontSize: 11, color: kSuccess, fontWeight: FontWeight.w600)),
+                                          ]),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right_rounded, color: kTextSecondary),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+    );
+  }
+}
+
+// ─── Survey Detail ─────────────────────────────────────────────────────────
+class SurveyDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> survey;
+  const SurveyDetailScreen({super.key, required this.survey});
+
+  @override
+  Widget build(BuildContext context) {
+    final products = (survey['products'] as List?) ?? [];
+    final photoUrl = survey['invoice_photo_url'] as String?;
+    final date = survey['survey_date'] != null
+        ? DateTime.tryParse(survey['survey_date'])
+        : null;
+    final dateStr = date != null ? '${date.day}/${date.month}/${date.year}' : '—';
+
+    return Scaffold(
+      appBar: AppBar(title: Text(survey['entity_name'] ?? 'Survey Detail')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Entity details card
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: kDivider, width: 0.8),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.store_outlined, color: kPrimary, size: 18),
+                  const SizedBox(width: 8),
+                  const Text('Entity Details',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kPrimary)),
+                ]),
+                const SizedBox(height: 12),
+                _detailRow('Name', survey['entity_name'] ?? '—'),
+                _detailRow('Type', survey['entity_type'] ?? '—'),
+                _detailRow('Owner', survey['owner_name'] ?? '—'),
+                _detailRow('District', '${survey['district'] ?? '—'}${survey['taluka'] != null ? ', ${survey['taluka']}' : ''}'),
+                _detailRow('Address', survey['address'] ?? '—'),
+                _detailRow('Survey Date', dateStr),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Invoice photo
+          if (photoUrl != null) ...[
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: kDivider, width: 0.8),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(children: [
+                    Icon(Icons.receipt_long_outlined, color: kPrimary, size: 18),
+                    SizedBox(width: 8),
+                    Text('Invoice Photo',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kPrimary)),
+                  ]),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      'http://10.0.2.2:3000$photoUrl',
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 120,
+                        color: kPrimaryLight,
+                        child: const Center(child: Text('Image unavailable', style: TextStyle(color: kTextSecondary))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Products
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: kDivider, width: 0.8),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.inventory_2_outlined, color: kPrimary, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Products (${products.length})',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kPrimary)),
+                ]),
+                const SizedBox(height: 12),
+                if (products.isEmpty)
+                  const Text('No products recorded.', style: TextStyle(color: kTextSecondary))
+                else
+                  ...products.asMap().entries.map((e) {
+                    final idx = e.key;
+                    final p = e.value as Map<String, dynamic>;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: kBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kDivider),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Container(
+                              width: 24, height: 24,
+                              decoration: BoxDecoration(color: kSecondary.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                              child: Center(child: Text('${idx + 1}',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kSecondaryDark))),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(p['product_name'] ?? '—',
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
+                            if (p['category'] != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: kPrimaryLight, borderRadius: BorderRadius.circular(6)),
+                                child: Text(p['category'],
+                                    style: const TextStyle(fontSize: 10, color: kPrimary, fontWeight: FontWeight.w700)),
+                              ),
+                          ]),
+                          if (p['brand'] != null && p['brand'].toString().isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text('Brand: ${p['brand']}', style: const TextStyle(fontSize: 12, color: kTextSecondary)),
+                          ],
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            _productStat('Monthly', '${p['monthly_quantity']} ${p['unit'] ?? ''}'),
+                            const SizedBox(width: 16),
+                            _productStat('Annual', '${p['annual_quantity']} ${p['unit'] ?? ''}'),
+                            const SizedBox(width: 16),
+                            _productStat('Price', '₹${p['price_per_unit']}/${p['unit'] ?? 'unit'}'),
+                          ]),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(width: 80, child: Text(label,
+              style: const TextStyle(fontSize: 12, color: kTextSecondary, fontWeight: FontWeight.w600))),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value,
+              style: const TextStyle(fontSize: 13, color: kTextPrimary, fontWeight: FontWeight.w500))),
+        ]),
+      );
+
+  Widget _productStat(String label, String value) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextPrimary)),
+        ],
+      );
 }
