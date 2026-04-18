@@ -7,26 +7,47 @@ import '../../app/routes/app_routes.dart';
 class MembershipPaymentController extends GetxController {
   final isLoading = false.obs;
   final agreed = false.obs;
+  final utrController = TextEditingController();
 
   static const double membershipFee = 5000.0;
 
-  Future<void> payMembership() async {
+  @override
+  void onClose() {
+    utrController.dispose();
+    super.onClose();
+  }
+
+  bool get canSubmit =>
+      agreed.value &&
+      !isLoading.value &&
+      utrController.text.trim().isNotEmpty;
+
+  Future<void> submitPayment() async {
     if (!agreed.value) return;
+    final utr = utrController.text.trim();
+    if (utr.isEmpty) {
+      Get.snackbar('Required', 'Please enter your UTR / Transaction ID',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange.shade50,
+          colorText: Colors.orange.shade800);
+      return;
+    }
+
     isLoading.value = true;
     try {
-      final res = await Get.find<ApiService>().post('/members/membership/pay', {});
-      // Update stored member data
+      final res = await Get.find<ApiService>()
+          .post('/members/submit-payment', {'utr_number': utr, 'amount': 5000});
       if (res['member'] != null) {
         await StorageService.to.saveMember(res['member'] as Map<String, dynamic>);
       }
       Get.offAllNamed(Routes.home);
       Get.snackbar(
-        'Membership Activated',
-        'Welcome! You now have full marketplace access.',
+        'Payment Submitted',
+        'Admin will verify your payment within 24 hours.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade700,
         colorText: Colors.white,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 5),
         margin: const EdgeInsets.all(12),
         borderRadius: 12,
       );
@@ -44,4 +65,7 @@ class MembershipPaymentController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  // Legacy method kept for backward compatibility
+  Future<void> payMembership() => submitPayment();
 }

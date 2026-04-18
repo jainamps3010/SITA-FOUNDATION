@@ -145,6 +145,31 @@ module.exports = (sequelize) => {
     geo_timestamp: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    utr_number: {
+      type: DataTypes.STRING(50),
+      allowNull: true
+    },
+    payment_submitted_at: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    payment_verified_by: {
+      type: DataTypes.UUID,
+      allowNull: true
+    },
+    payment_verified_at: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    payment_status: {
+      type: DataTypes.ENUM('not_paid', 'pending_verification', 'verified', 'rejected'),
+      defaultValue: 'not_paid',
+      allowNull: false
+    },
+    payment_rejection_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true
     }
   }, {
     tableName: 'members',

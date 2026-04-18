@@ -25,14 +25,94 @@ const categoryBadge = (cat) => {
   );
 };
 
-const docLink = (url, label) => {
-  if (!url) return <span style={{ color: '#9ca3af' }}>Not uploaded</span>;
-  const full = url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+/** Resolve any stored URL (relative or absolute) to a full http:// URL */
+const fullUrl = (url) =>
+  !url ? null : url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+
+const isPdf = (url) => url && url.toLowerCase().endsWith('.pdf');
+
+/** Open a document in a new browser tab — more reliable than <a target="_blank"> */
+const openDoc = (url) => {
+  const href = fullUrl(url);
+  if (href) window.open(href, '_blank', 'noopener,noreferrer');
+};
+
+/**
+ * DocCard — clickable card for a single uploaded document.
+ * Shows a thumbnail for images, a PDF icon for PDFs, and "Not uploaded" when missing.
+ */
+const DocCard = ({ url, label }) => {
+  const href = fullUrl(url);
+  if (!href) {
+    return (
+      <div style={{
+        border: '1px dashed #d1d5db', borderRadius: 8, padding: '10px 12px',
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: '#f9fafb', minHeight: 56,
+      }}>
+        <span style={{ fontSize: 18 }}>📄</span>
+        <div>
+          <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>{label}</div>
+          <div style={{ fontSize: 11, color: '#9ca3af' }}>Not uploaded</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <a href={full} target="_blank" rel="noopener noreferrer"
-       style={{ color: '#1A237E', textDecoration: 'underline', fontSize: '13px' }}>
-      {label} ↗
-    </a>
+    <div
+      onClick={() => openDoc(url)}
+      title={`Open ${label} in new tab`}
+      style={{
+        border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden',
+        cursor: 'pointer', background: '#fff',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        transition: 'box-shadow 0.15s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,0.12)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}
+    >
+      {/* Preview area */}
+      {isPdf(url) ? (
+        <div style={{
+          height: 72, background: '#fef2f2',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{ fontSize: 32 }}>📑</span>
+        </div>
+      ) : (
+        <div style={{ height: 72, background: '#f3f4f6', position: 'relative', overflow: 'hidden' }}>
+          <img
+            src={href}
+            alt={label}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            onError={e => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+          {/* Fallback shown only if img fails */}
+          <div style={{
+            display: 'none', position: 'absolute', inset: 0,
+            alignItems: 'center', justifyContent: 'center',
+            background: '#f3f4f6', fontSize: 28,
+          }}>🖼️</div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{
+        padding: '6px 10px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderTop: '1px solid #f3f4f6',
+      }}>
+        <span style={{ fontSize: 11, color: '#374151', fontWeight: 600 }}>{label}</span>
+        <span style={{
+          fontSize: 10, color: '#1A237E', fontWeight: 700,
+          background: '#e8f0fe', borderRadius: 4, padding: '2px 6px',
+        }}>Open ↗</span>
+      </div>
+    </div>
   );
 };
 
@@ -62,6 +142,7 @@ const membershipStatusBadge = (m) => {
 };
 
 export default function MembersPage() {
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'pending_payments'
   const [members, setMembers] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -72,8 +153,9 @@ export default function MembersPage() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
-  const [modal, setModal] = useState(null); // 'detail' | 'reject' | 'wallet'
+  const [modal, setModal] = useState(null); // 'detail' | 'reject' | 'wallet' | 'rejectPayment'
   const [rejectReason, setRejectReason] = useState('');
+  const [paymentRejectReason, setPaymentRejectReason] = useState('');
   const [walletAmount, setWalletAmount] = useState('');
   const [walletDesc, setWalletDesc] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -82,19 +164,51 @@ export default function MembersPage() {
   const load = () => {
     setLoading(true);
     const params = { page, limit: 20 };
-    if (search) params.search = search;
-    if (statusFilter) params.status = statusFilter;
-    if (membershipFilter !== '') params.membership_paid = membershipFilter;
-    if (membershipStatusFilter) params.membership_status = membershipStatusFilter;
-    if (categoryFilter) params.category = categoryFilter;
+    if (activeTab === 'pending_payments') {
+      params.payment_status = 'pending_verification';
+    } else {
+      if (search) params.search = search;
+      if (statusFilter) params.status = statusFilter;
+      if (membershipFilter !== '') params.membership_paid = membershipFilter;
+      if (membershipStatusFilter) params.membership_status = membershipStatusFilter;
+      if (categoryFilter) params.category = categoryFilter;
+    }
     api.get('/admin/members', { params })
       .then(r => { setMembers(r.data.data); setPagination(r.data.pagination); })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [page, statusFilter, membershipFilter, membershipStatusFilter, categoryFilter]);
+  useEffect(() => { load(); }, [page, statusFilter, membershipFilter, membershipStatusFilter, categoryFilter, activeTab]);
   useEffect(() => { const t = setTimeout(load, 400); return () => clearTimeout(t); }, [search]);
+
+  const verifyPayment = async (member) => {
+    if (!window.confirm(`Verify payment of ₹5,000 from "${member.name}" (UTR: ${member.utr_number})?`)) return;
+    setActionLoading(true);
+    try {
+      await api.post(`/admin/members/${member.id}/verify-payment`);
+      setMsg({ type: 'success', text: 'Payment verified and membership activated' });
+      load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed' }); }
+    finally { setActionLoading(false); }
+  };
+
+  const openRejectPayment = (member) => {
+    setSelected(member);
+    setPaymentRejectReason('');
+    setModal('rejectPayment');
+  };
+
+  const rejectPayment = async () => {
+    if (!paymentRejectReason.trim()) return;
+    setActionLoading(true);
+    try {
+      await api.post(`/admin/members/${selected.id}/reject-payment`, { reason: paymentRejectReason });
+      setMsg({ type: 'success', text: 'Payment rejected' });
+      setModal(null); setPaymentRejectReason(''); load();
+    } catch (e) { setMsg({ type: 'error', text: e.response?.data?.message || 'Failed' }); }
+    finally { setActionLoading(false); }
+  };
 
   const openDetail = async (member) => {
     const r = await api.get(`/admin/members/${member.id}`);
@@ -227,38 +341,116 @@ export default function MembersPage() {
         <div className="card-header">
           <h3>Members ({pagination?.total || 0})</h3>
         </div>
-        <div className="card-body" style={{ paddingBottom: 0 }}>
-          <div className="filters">
-            <input className="filter-input" placeholder="Search name, hotel, phone..." value={search} onChange={e => setSearch(e.target.value)} />
-            <select className="filter-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="active">Active</option>
-              <option value="rejected">Rejected</option>
-              <option value="suspended">Suspended</option>
-            </select>
-            <select className="filter-select" value={membershipFilter} onChange={e => { setMembershipFilter(e.target.value); setPage(1); }}>
-              <option value="">All Membership</option>
-              <option value="true">Paid</option>
-              <option value="false">Unpaid</option>
-            </select>
-            <select className="filter-select" value={membershipStatusFilter} onChange={e => { setMembershipStatusFilter(e.target.value); setPage(1); }}>
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="expired">Expired</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="pending">Pending</option>
-            </select>
-            <select className="filter-select" value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(1); }}>
-              <option value="">All Categories</option>
-              {Object.entries(CATEGORIES).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
-            </select>
-          </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid #e5e7eb', padding: '0 20px' }}>
+          {[
+            { key: 'all', label: 'All Members' },
+            { key: 'pending_payments', label: '🕐 Pending Payments' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key); setPage(1); }}
+              style={{
+                padding: '10px 18px',
+                border: 'none',
+                borderBottom: activeTab === tab.key ? '2px solid #1A237E' : '2px solid transparent',
+                background: 'none',
+                cursor: 'pointer',
+                fontWeight: activeTab === tab.key ? 700 : 400,
+                color: activeTab === tab.key ? '#1A237E' : '#6b7280',
+                fontSize: '14px',
+                marginBottom: '-2px',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        {activeTab === 'all' && (
+          <div className="card-body" style={{ paddingBottom: 0 }}>
+            <div className="filters">
+              <input className="filter-input" placeholder="Search name, hotel, phone..." value={search} onChange={e => setSearch(e.target.value)} />
+              <select className="filter-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+                <option value="rejected">Rejected</option>
+                <option value="suspended">Suspended</option>
+              </select>
+              <select className="filter-select" value={membershipFilter} onChange={e => { setMembershipFilter(e.target.value); setPage(1); }}>
+                <option value="">All Membership</option>
+                <option value="true">Paid</option>
+                <option value="false">Unpaid</option>
+              </select>
+              <select className="filter-select" value={membershipStatusFilter} onChange={e => { setMembershipStatusFilter(e.target.value); setPage(1); }}>
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="pending">Pending</option>
+              </select>
+              <select className="filter-select" value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(1); }}>
+                <option value="">All Categories</option>
+                {Object.entries(CATEGORIES).map(([k, v]) => (
+                  <option key={k} value={k}>{v.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         <div className="table-wrap">
-          {loading ? <div className="loading"><div className="spinner" /></div> : (
+          {loading ? <div className="loading"><div className="spinner" /></div> : activeTab === 'pending_payments' ? (
+            <table>
+              <thead><tr>
+                <th>Member Name</th><th>Phone</th><th>UTR / Transaction ID</th>
+                <th>Amount</th><th>Submitted On</th><th>Actions</th>
+              </tr></thead>
+              <tbody>
+                {members.length === 0 && (
+                  <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9ca3af', padding: '40px' }}>
+                    No pending payments
+                  </td></tr>
+                )}
+                {members.map(m => (
+                  <tr key={m.id}>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{m.name}</div>
+                      <div className="text-muted">{m.hotel_name}</div>
+                    </td>
+                    <td>{m.phone}</td>
+                    <td>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1A237E' }}>
+                        {m.utr_number || '—'}
+                      </span>
+                    </td>
+                    <td><strong>₹5,000</strong></td>
+                    <td className="text-muted">{m.payment_submitted_at ? formatDate(m.payment_submitted_at) : '—'}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          className="btn btn-success btn-sm"
+                          onClick={() => verifyPayment(m)}
+                          disabled={actionLoading}
+                        >
+                          Verify Payment
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => openRejectPayment(m)}
+                          disabled={actionLoading}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
             <table>
               <thead><tr>
                 <th>Name / Hotel</th><th>Phone</th><th>City</th><th>Category</th>
@@ -300,6 +492,12 @@ export default function MembersPage() {
                           <>
                             <button className="btn btn-success btn-sm" onClick={() => approve(m.id)}>Approve</button>
                             <button className="btn btn-danger btn-sm" onClick={() => { setSelected(m); setModal('reject'); }}>Reject</button>
+                          </>
+                        )}
+                        {m.payment_status === 'pending_verification' && (
+                          <>
+                            <button className="btn btn-success btn-sm" onClick={() => verifyPayment(m)} disabled={actionLoading}>Verify Pay</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => openRejectPayment(m)} disabled={actionLoading}>Reject Pay</button>
                           </>
                         )}
                         {m.membership_paid && m.membership_active !== false && (
@@ -372,57 +570,28 @@ export default function MembersPage() {
                 <div style={{ fontWeight: 600, fontSize: '13px', color: '#374151', marginBottom: '10px' }}>
                   📄 Documents
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div style={{ fontSize: '13px' }}>
-                    <span style={{ color: '#6b7280' }}>Business Reg. Cert: </span>
-                    {docLink(selected.business_reg_certificate_url, 'View')}
-                  </div>
-                  <div style={{ fontSize: '13px' }}>
-                    <span style={{ color: '#6b7280' }}>FSSAI License: </span>
-                    {docLink(selected.fssai_license_url, 'View')}
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <DocCard url={selected.business_reg_certificate_url} label="Business Reg. Cert" />
+                  <DocCard url={selected.fssai_license_url} label="FSSAI License" />
                 </div>
               </div>
 
-              {/* Photos */}
-              {(selected.establishment_front_photo_url || selected.billing_counter_photo_url ||
-                selected.kitchen_photo_url || selected.menu_card_photo_url) && (
-                <div style={{ marginTop: '14px', borderTop: '1px solid #e5e7eb', paddingTop: '14px' }}>
-                  <div style={{ fontWeight: 600, fontSize: '13px', color: '#374151', marginBottom: '10px' }}>
-                    📸 Establishment Photos
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                    {[
-                      { url: selected.establishment_front_photo_url, label: 'Front View' },
-                      { url: selected.billing_counter_photo_url,     label: 'Billing Counter' },
-                      { url: selected.kitchen_photo_url,             label: 'Kitchen' },
-                      { url: selected.menu_card_photo_url,           label: 'Menu Card' },
-                    ].map(({ url, label }) => url ? (
-                      <a key={label} href={url.startsWith('http') ? url : `${BACKEND_URL}${url}`}
-                         target="_blank" rel="noopener noreferrer"
-                         style={{ display: 'block', textDecoration: 'none' }}>
-                        <img
-                          src={url.startsWith('http') ? url : `${BACKEND_URL}${url}`}
-                          alt={label}
-                          style={{ width: '100%', height: '72px', objectFit: 'cover',
-                                   borderRadius: '6px', border: '1px solid #e5e7eb' }}
-                          onError={e => { e.target.style.display = 'none'; }}
-                        />
-                        <div style={{ textAlign: 'center', fontSize: '11px', color: '#6b7280', marginTop: '3px' }}>
-                          {label}
-                        </div>
-                      </a>
-                    ) : (
-                      <div key={label} style={{ height: '72px', background: '#f9fafb',
-                           borderRadius: '6px', border: '1px dashed #d1d5db',
-                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                           fontSize: '10px', color: '#9ca3af' }}>
-                        {label}<br/>Not uploaded
-                      </div>
-                    ))}
-                  </div>
+              {/* Establishment Photos */}
+              <div style={{ marginTop: '14px', borderTop: '1px solid #e5e7eb', paddingTop: '14px' }}>
+                <div style={{ fontWeight: 600, fontSize: '13px', color: '#374151', marginBottom: '10px' }}>
+                  📸 Establishment Photos
                 </div>
-              )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                  {[
+                    { url: selected.establishment_front_photo_url, label: 'Front View' },
+                    { url: selected.billing_counter_photo_url,     label: 'Billing Counter' },
+                    { url: selected.kitchen_photo_url,             label: 'Kitchen' },
+                    { url: selected.menu_card_photo_url,           label: 'Menu Card' },
+                  ].map(({ url, label }) => (
+                    <DocCard key={label} url={url} label={label} />
+                  ))}
+                </div>
+              </div>
 
               {/* GPS Location */}
               {selected.latitude && selected.longitude && (
@@ -498,6 +667,42 @@ export default function MembersPage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-danger" onClick={reject} disabled={actionLoading || !rejectReason.trim()}>Confirm Reject</button>
+              <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Payment Modal */}
+      {modal === 'rejectPayment' && selected && (
+        <div className="modal-overlay" onClick={() => setModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Reject Payment</h3>
+              <button className="modal-close" onClick={() => setModal(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '8px', color: '#4b5563' }}>
+                Rejecting payment from <strong>{selected.name}</strong>
+              </p>
+              <p style={{ marginBottom: '12px', color: '#6b7280', fontSize: '13px' }}>
+                UTR: <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#1A237E' }}>{selected.utr_number}</span>
+              </p>
+              <div className="form-group">
+                <label className="form-label">Rejection Reason *</label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={paymentRejectReason}
+                  onChange={e => setPaymentRejectReason(e.target.value)}
+                  placeholder="e.g. UTR not found, amount mismatch..."
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-danger" onClick={rejectPayment} disabled={actionLoading || !paymentRejectReason.trim()}>
+                Confirm Reject
+              </button>
               <button className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button>
             </div>
           </div>

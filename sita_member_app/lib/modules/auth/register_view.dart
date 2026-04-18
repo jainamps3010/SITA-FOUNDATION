@@ -170,17 +170,23 @@ class RegisterView extends GetView<RegisterController> {
               color: const Color(0xFF6A1B9A),
               children: [
                 _label('Business Registration Certificate *'),
+                const Text('JPG, JPEG, PNG or PDF accepted',
+                    style: TextStyle(fontSize: 11.5, color: Color(0xFF9CA3AF))),
+                const SizedBox(height: 6),
                 Obx(() => _docPickerButton(
                       label: 'Upload Certificate',
                       file: controller.businessRegCert.value,
-                      onTap: () => controller.pickImage(controller.businessRegCert),
+                      onTap: () => controller.pickDocument(controller.businessRegCert),
                     )),
                 const SizedBox(height: 4),
                 _label('FSSAI License *'),
+                const Text('JPG, JPEG, PNG or PDF accepted',
+                    style: TextStyle(fontSize: 11.5, color: Color(0xFF9CA3AF))),
+                const SizedBox(height: 6),
                 Obx(() => _docPickerButton(
                       label: 'Upload FSSAI License',
                       file: controller.fssaiLicense.value,
-                      onTap: () => controller.pickImage(controller.fssaiLicense),
+                      onTap: () => controller.pickDocument(controller.fssaiLicense),
                     )),
               ],
             ),
@@ -427,6 +433,7 @@ class RegisterView extends GetView<RegisterController> {
     required VoidCallback onTap,
   }) {
     final picked = file != null;
+    final isPdf = picked && file!.name.toLowerCase().endsWith('.pdf');
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -440,14 +447,17 @@ class RegisterView extends GetView<RegisterController> {
             color: picked
                 ? AppColors.success.withValues(alpha: 0.4)
                 : AppColors.divider,
-            style: picked ? BorderStyle.solid : BorderStyle.solid,
           ),
         ),
         child: Row(
           children: [
             Icon(
-              picked ? Icons.check_circle : Icons.upload_file,
-              color: picked ? AppColors.success : AppColors.textSecondary,
+              picked
+                  ? (isPdf ? Icons.picture_as_pdf : Icons.check_circle)
+                  : Icons.upload_file,
+              color: picked
+                  ? (isPdf ? const Color(0xFFE53935) : AppColors.success)
+                  : AppColors.textSecondary,
               size: 20,
             ),
             const SizedBox(width: 10),

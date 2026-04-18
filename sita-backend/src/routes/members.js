@@ -36,6 +36,37 @@ router.put('/profile', authenticateMember, [
   } catch (err) { next(err); }
 });
 
+// POST /members/submit-payment - Submit UTR for bank transfer verification
+router.post('/submit-payment', authenticateMember, [
+  body('utr_number').trim().notEmpty().withMessage('UTR/Transaction ID is required')
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    if (req.member.payment_status === 'verified') {
+      return res.status(400).json({ success: false, message: 'Payment already verified.' });
+    }
+    if (req.member.payment_status === 'pending_verification') {
+      return res.status(400).json({ success: false, message: 'Payment already submitted and awaiting verification.' });
+    }
+
+    await req.member.update({
+      utr_number: req.body.utr_number.trim(),
+      payment_submitted_at: new Date(),
+      payment_status: 'pending_verification'
+    });
+
+    res.json({
+      success: true,
+      message: 'Payment submitted! Admin will verify within 24 hours.',
+      member: req.member
+    });
+  } catch (err) { next(err); }
+});
+
 // POST /members/membership/pay - Pay annual membership fee (first time)
 router.post('/membership/pay', authenticateMember, async (req, res, next) => {
   try {

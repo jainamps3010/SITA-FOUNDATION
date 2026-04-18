@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/routes/app_routes.dart';
@@ -62,18 +64,68 @@ class RegisterController extends GetxController {
 
   final _picker = ImagePicker();
 
-  // ── Pick image from gallery ─────────────────────────────────────────────────
+  // ── Pick image from gallery (JPG / PNG — any image, no format restriction) ──
   Future<void> pickImage(Rx<XFile?> target) async {
     try {
-      final file = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1920,
-      );
+      final file = await _picker.pickImage(source: ImageSource.gallery);
       if (file != null) target.value = file;
     } catch (e) {
       Get.snackbar('Error', 'Could not pick image. Try again.',
-          snackPosition: SnackPosition.BOTTOM);
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800);
+    }
+  }
+
+  // ── Pick document from storage (JPG, JPEG, PNG or PDF) ─────────────────────
+  // withData: false + path-based reading is required on Android — many file
+  // providers (Downloads, Google Drive, content URIs) return null bytes when
+  // withData: true is used, which is the source of "Could not read file" errors.
+  Future<void> pickDocument(Rx<XFile?> target) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+        withData: false,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final pf = result.files.first;
+
+      Uint8List bytes;
+      if (pf.path != null) {
+        // Native path available (Android / iOS) — read directly from disk.
+        bytes = await File(pf.path!).readAsBytes();
+      } else if (pf.bytes != null) {
+        // Web fallback — bytes already in memory.
+        bytes = pf.bytes!;
+      } else {
+        Get.snackbar('Error', 'Could not read the selected file. Try again.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.shade50,
+            colorText: Colors.red.shade800);
+        return;
+      }
+
+      target.value = XFile.fromData(
+        bytes,
+        name: pf.name,
+        mimeType: _mimeFromExt(pf.extension),
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Could not open file picker. Try again.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800);
+    }
+  }
+
+  String? _mimeFromExt(String? ext) {
+    switch (ext?.toLowerCase()) {
+      case 'jpg':
+      case 'jpeg': return 'image/jpeg';
+      case 'png':  return 'image/png';
+      case 'pdf':  return 'application/pdf';
+      default:     return null;
     }
   }
 

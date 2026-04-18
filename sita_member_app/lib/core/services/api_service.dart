@@ -1,8 +1,26 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:get/get.dart' hide Response;
 import 'storage_service.dart';
+
+/// Resolves the correct MIME MediaType from a filename extension.
+/// Falls back to application/octet-stream only when truly unknown.
+MediaType _mediaTypeFromFilename(String filename) {
+  final ext = filename.split('.').last.toLowerCase();
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return MediaType('image', 'jpeg');
+    case 'png':
+      return MediaType('image', 'png');
+    case 'pdf':
+      return MediaType('application', 'pdf');
+    default:
+      return MediaType('application', 'octet-stream');
+  }
+}
 
 class ApiService extends GetxService {
   static const String baseUrl = 'http://10.0.2.2:3000/api/v1';
@@ -57,6 +75,7 @@ class ApiService extends GetxService {
         entry.key,
         entry.value.bytes,
         filename: entry.value.filename,
+        contentType: _mediaTypeFromFilename(entry.value.filename),
       ));
     }
     final streamed = await request.send();

@@ -22,14 +22,20 @@ const kycStorage = multer.diskStorage({
     cb(null, `${uuidv4()}${ext}`);
   },
 });
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg', 'image/jpg', 'image/png', 'application/pdf'
+]);
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.pdf']);
+
 const kycUpload = multer({
   storage: kycStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB per file
   fileFilter: (req, file, cb) => {
-    if (/^image\//i.test(file.mimetype) || file.mimetype === 'application/pdf') {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ALLOWED_MIME_TYPES.has(file.mimetype) || ALLOWED_EXTENSIONS.has(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Only images and PDFs are allowed'));
+      cb(new Error('Only JPG, JPEG, PNG and PDF files are allowed'));
     }
   },
 });

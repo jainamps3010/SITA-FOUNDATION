@@ -28,8 +28,11 @@ router.get('/dashboard/stats', async (req, res, next) => {
       totalMembers, activeMembers, pendingMembers,
       totalVendors, activeVendors,
       totalOrders, pendingOrders, deliveredOrders,
+      cancelledOrders,
       openDisputes,
-      totalRevenue,
+      commissionRevenue,
+      membershipRevenue,
+      membershipPaidCount,
       expiredMemberships,
       expiringThisMonth
     ] = await Promise.all([
@@ -41,8 +44,11 @@ router.get('/dashboard/stats', async (req, res, next) => {
       Order.count(),
       Order.count({ where: { status: 'pending' } }),
       Order.count({ where: { status: 'delivered' } }),
+      Order.count({ where: { status: 'cancelled' } }),
       Dispute.count({ where: { status: { [Op.in]: ['open', 'investigating'] } } }),
-      Order.sum('sita_commission', { where: { status: { [Op.notIn]: ['cancelled'] } } }),
+      Order.sum('sita_commission', { where: { status: 'delivered' } }),
+      Member.sum('membership_fee', { where: { payment_status: 'verified' } }),
+      Member.count({ where: { payment_status: 'verified' } }),
       Member.count({ where: { membership_status: 'expired' } }),
       Member.count({
         where: {
@@ -51,6 +57,81 @@ router.get('/dashboard/stats', async (req, res, next) => {
         }
       })
     ]);
+
+    // Cancellation revenue = total_amount - refund_amount for cancelled orders
+    const [cancellationResult] = await sequelize.query(`
+      SELECT COALESCE(SUM(
+        o.total_amount - COALESCE(
+          (SELECT SUM(wt.amount) FROM sita_wallet_transactions wt
+           WHERE wt.order_id = o.id AND wt.reason = 'order_refund'), 0
+        )
+      ), 0) AS cancellation_revenue,
+      COUNT(o.id) AS cancellation_count
+      FROM orders o
+      WHERE o.status = 'cancelled'
+    `);
+    const cancellationRevenue = parseFloat(cancellationResult[0]?.cancellation_revenue || 0);
+    const cancellationCount = parseInt(cancellationResult[0]?.cancellation_count || 0);
+
+    const membershipRev = parseFloat(membershipRevenue || 0);
+    const commissionRev = parseFloat(commissionRevenue || 0);
+    const totalRevenue = membershipRev + commissionRev + cancellationRevenue;
+
+    // Monthly trend — last 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const [membershipMonthly] = await sequelize.query(`
+      SELECT TO_CHAR(payment_verified_at, 'YYYY-MM') AS month,
+             COALESCE(SUM(membership_fee), 0) AS amount
+      FROM members
+      WHERE payment_status = 'verified' AND payment_verified_at >= :since
+      GROUP BY month ORDER BY month
+    `, { replacements: { since: sixMonthsAgo } });
+
+    const [commissionMonthly] = await sequelize.query(`
+      SELECT TO_CHAR(delivered_at, 'YYYY-MM') AS month,
+             COALESCE(SUM(sita_commission), 0) AS amount
+      FROM orders
+      WHERE status = 'delivered' AND delivered_at >= :since
+      GROUP BY month ORDER BY month
+    `, { replacements: { since: sixMonthsAgo } });
+
+    const [cancellationMonthly] = await sequelize.query(`
+      SELECT TO_CHAR(o.cancelled_at, 'YYYY-MM') AS month,
+             COALESCE(SUM(
+               o.total_amount - COALESCE(
+                 (SELECT SUM(wt.amount) FROM sita_wallet_transactions wt
+                  WHERE wt.order_id = o.id AND wt.reason = 'order_refund'), 0
+               )
+             ), 0) AS amount
+      FROM orders o
+      WHERE o.status = 'cancelled' AND o.cancelled_at >= :since
+      GROUP BY month ORDER BY month
+    `, { replacements: { since: sixMonthsAgo } });
+
+    // Build last-6-months labels and merge data
+    const monthLabels = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      monthLabels.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+
+    const toMap = (rows) => Object.fromEntries(rows.map(r => [r.month, parseFloat(r.amount)]));
+    const memMap = toMap(membershipMonthly);
+    const comMap = toMap(commissionMonthly);
+    const canMap = toMap(cancellationMonthly);
+
+    const monthly_trend = monthLabels.map(m => ({
+      month: m,
+      membership: memMap[m] || 0,
+      commission: comMap[m] || 0,
+      cancellation: canMap[m] || 0,
+      total: (memMap[m] || 0) + (comMap[m] || 0) + (canMap[m] || 0)
+    }));
 
     const recentOrders = await Order.findAll({
       include: [
@@ -66,10 +147,19 @@ router.get('/dashboard/stats', async (req, res, next) => {
       stats: {
         members: { total: totalMembers, active: activeMembers, pending: pendingMembers },
         vendors: { total: totalVendors, active: activeVendors },
-        orders: { total: totalOrders, pending: pendingOrders, delivered: deliveredOrders },
+        orders: { total: totalOrders, pending: pendingOrders, delivered: deliveredOrders, cancelled: cancelledOrders },
         disputes: { open: openDisputes },
-        revenue: { sita_commission_total: parseFloat(totalRevenue || 0).toFixed(2) },
-        memberships: { expired: expiredMemberships, expiring_this_month: expiringThisMonth }
+        revenue: {
+          sita_commission_total: commissionRev.toFixed(2),
+          membership_revenue: membershipRev.toFixed(2),
+          commission_revenue: commissionRev.toFixed(2),
+          cancellation_revenue: cancellationRevenue.toFixed(2),
+          total_revenue: totalRevenue.toFixed(2),
+          membership_paid_count: membershipPaidCount,
+          cancellation_count: cancellationCount
+        },
+        memberships: { expired: expiredMemberships, expiring_this_month: expiringThisMonth },
+        monthly_trend
       },
       recent_orders: recentOrders
     });
@@ -87,6 +177,7 @@ router.get('/members', async (req, res, next) => {
     if (req.query.membership_paid !== undefined) where.membership_paid = req.query.membership_paid === 'true';
     if (req.query.membership_status) where.membership_status = req.query.membership_status;
     if (req.query.category) where.category = req.query.category;
+    if (req.query.payment_status) where.payment_status = req.query.payment_status;
     if (req.query.search) {
       where[Op.or] = [
         { name: { [Op.iLike]: `%${req.query.search}%` } },
@@ -283,6 +374,60 @@ router.post('/members/:id/revoke-membership', async (req, res, next) => {
     if (member.membership_active !== false) return res.status(400).json({ success: false, message: 'Membership is not cancelled' });
     await member.update({ membership_active: true, membership_status: 'active' });
     res.json({ success: true, message: 'Membership cancellation revoked', member });
+  } catch (err) { next(err); }
+});
+
+// POST /admin/members/:id/verify-payment
+router.post('/members/:id/verify-payment', async (req, res, next) => {
+  try {
+    const member = await Member.findByPk(req.params.id);
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (member.payment_status !== 'pending_verification') {
+      return res.status(400).json({ success: false, message: 'No pending payment to verify' });
+    }
+
+    const membershipFee = parseFloat(process.env.MEMBERSHIP_FEE) || 5000;
+    const today = new Date();
+    const expiryDate = new Date(today);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+    await member.update({
+      payment_status: 'verified',
+      payment_verified_by: req.admin.id,
+      payment_verified_at: today,
+      membership_paid: true,
+      membership_fee: membershipFee,
+      membership_paid_at: today,
+      membership_start_date: today.toISOString().split('T')[0],
+      membership_expiry_date: expiryDate.toISOString().split('T')[0],
+      membership_status: 'active',
+      membership_active: true
+    });
+
+    res.json({ success: true, message: 'Payment verified and membership activated', member });
+  } catch (err) { next(err); }
+});
+
+// POST /admin/members/:id/reject-payment
+router.post('/members/:id/reject-payment', [
+  body('reason').notEmpty().withMessage('Rejection reason required')
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+    const member = await Member.findByPk(req.params.id);
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (member.payment_status !== 'pending_verification') {
+      return res.status(400).json({ success: false, message: 'No pending payment to reject' });
+    }
+
+    await member.update({
+      payment_status: 'rejected',
+      payment_rejection_reason: req.body.reason
+    });
+
+    res.json({ success: true, message: 'Payment rejected', member });
   } catch (err) { next(err); }
 });
 

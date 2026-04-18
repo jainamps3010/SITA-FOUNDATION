@@ -20,12 +20,19 @@ const invoiceStorage = multer.diskStorage({
     cb(null, `${uuidv4()}${ext}`);
   },
 });
+const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png']);
+const ALLOWED_IMAGE_EXTS  = new Set(['.jpg', '.jpeg', '.png']);
+
 const invoiceUpload = multer({
   storage: invoiceStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (/^image\//i.test(file.mimetype)) cb(null, true);
-    else cb(new Error('Only images are allowed'));
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ALLOWED_IMAGE_MIMES.has(file.mimetype) || ALLOWED_IMAGE_EXTS.has(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG, JPEG and PNG images are allowed'));
+    }
   },
 });
 
