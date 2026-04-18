@@ -5,40 +5,10 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const { Member, Admin, SurveyAgent } = require('../models');
 const { generateOTP } = require('../utils/helpers');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+const { createSecureUpload } = require('../middleware/uploadSecurity');
 
-// ─── Multer: KYC document / photo uploads ─────────────────────────────────────
-const kycStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../../uploads/kyc');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, `${uuidv4()}${ext}`);
-  },
-});
-const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg', 'image/jpg', 'image/png', 'application/pdf'
-]);
-const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.pdf']);
-
-const kycUpload = multer({
-  storage: kycStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB per file
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ALLOWED_MIME_TYPES.has(file.mimetype) || ALLOWED_EXTENSIONS.has(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPG, JPEG, PNG and PDF files are allowed'));
-    }
-  },
-});
+// ─── Secure KYC upload (shared helper enforces MIME + extension + 10 MB) ──────
+const kycUpload = createSecureUpload('kyc');
 const kycFields = kycUpload.fields([
   { name: 'business_reg_certificate', maxCount: 1 },
   { name: 'fssai_license',            maxCount: 1 },
@@ -48,80 +18,71 @@ const kycFields = kycUpload.fields([
   { name: 'menu_card_photo',          maxCount: 1 },
 ]);
 
-// ─── In-memory OTP store for driver auth ──────────────────────────────────────
-// Accepts both 'mobile' and 'phone' fields from the request body.
-// Key: mobile number string. Value: { otp, expiresAt }
+// ─── In-memory OTP store for driver / survey-agent auth ───────────────────────
+// Key: mobile number.  Value: { otp, expiresAt, attempts }
 const driverOtpStore = new Map();
 
-// POST /auth/send-otp  — survey agent login step 1
+// ─── POST /auth/send-otp  — delivery driver / survey agent ────────────────────
 router.post('/send-otp', async (req, res) => {
   const mobile = req.body.mobile || req.body.phone;
-  const role = req.body.role; // 'survey_agent' or undefined (delivery driver)
+  const role   = req.body.role;
 
-  if (!mobile || !/^\d{10}$/.test(mobile)) {
+  if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
     return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number required' });
   }
 
-  // Survey agent gate: only pre-registered, approved agents may proceed
   if (role === 'survey_agent') {
     const agent = await SurveyAgent.findOne({ where: { mobile } });
     if (!agent) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Contact SITA Foundation admin to get access.',
-        code: 'NOT_REGISTERED'
-      });
+      return res.status(403).json({ success: false, message: 'Access denied. Contact SITA Foundation admin.', code: 'NOT_REGISTERED' });
     }
     if (agent.status === 'blocked') {
-      return res.status(403).json({
-        success: false,
-        message: 'Your access has been blocked. Contact SITA Foundation.',
-        code: 'BLOCKED'
-      });
+      return res.status(403).json({ success: false, message: 'Your access has been blocked.', code: 'BLOCKED' });
     }
     if (agent.status !== 'approved') {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account is pending approval. Please contact admin.',
-        code: 'PENDING'
-      });
+      return res.status(403).json({ success: false, message: 'Account pending approval.', code: 'PENDING' });
     }
   }
 
-  const otp = generateOTP();
-  const expiresAt = Date.now() + 5 * 60 * 1000;
+  const otp       = generateOTP();
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-  driverOtpStore.set(mobile, { otp, expiresAt });
-  console.log(`\nDEV OTP for ${mobile}: ${otp}\n`);
+  driverOtpStore.set(mobile, { otp, expiresAt, attempts: 0 });
+  console.log(`\n[DEV OTP] ${mobile}: ${otp}\n`);
 
   res.json({ success: true, message: 'OTP sent' });
 });
 
-// POST /auth/verify-otp  — driver/survey agent login step 2
+// ─── POST /auth/verify-otp  — delivery driver / survey agent ──────────────────
 router.post('/verify-otp', async (req, res) => {
   const mobile = req.body.mobile || req.body.phone;
   const { otp } = req.body;
 
-  if (!mobile || !/^\d{10}$/.test(mobile)) {
+  if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
     return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number required' });
   }
-  if (!otp || otp.length !== 6) {
+  if (!otp || !/^\d{6}$/.test(otp)) {
     return res.status(400).json({ success: false, message: '6-digit OTP required' });
   }
 
   const stored = driverOtpStore.get(mobile);
-
   if (!stored) {
-    return res.status(400).json({ success: false, message: 'No OTP requested for this number. Please request a new OTP.' });
+    return res.status(400).json({ success: false, message: 'No OTP requested for this number.' });
   }
-
   if (Date.now() > stored.expiresAt) {
     driverOtpStore.delete(mobile);
     return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
   }
 
+  // Track failed attempts per entry (belt-and-suspenders alongside per-mobile rate limiter)
+  stored.attempts = (stored.attempts || 0) + 1;
+  if (stored.attempts > 5) {
+    driverOtpStore.delete(mobile);
+    return res.status(429).json({ success: false, message: 'Too many incorrect attempts. Please request a new OTP.' });
+  }
+
   const bypassOtp = process.env.OTP_BYPASS;
-  const isValid = (bypassOtp && otp === bypassOtp) || stored.otp === otp;
+  const isValid   = (bypassOtp && otp === bypassOtp) || stored.otp === otp;
 
   if (!isValid) {
     return res.status(400).json({ success: false, message: 'Invalid OTP' });
@@ -135,7 +96,6 @@ router.post('/verify-otp', async (req, res) => {
     { expiresIn: '7d' }
   );
 
-  // Look up agent status if this is a survey agent login
   const agent = await SurveyAgent.findOne({ where: { mobile } });
 
   res.json({
@@ -143,13 +103,15 @@ router.post('/verify-otp', async (req, res) => {
     message: 'Login successful',
     token,
     agent_status: agent ? agent.status : null,
-    driver: { phone: mobile, mobile }
+    driver: { phone: mobile, mobile },
   });
 });
 
-// POST /auth/member/send-otp
+// ─── POST /auth/member/send-otp ───────────────────────────────────────────────
 router.post('/member/send-otp', [
-  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Valid 10-digit Indian mobile number required')
+  body('phone')
+    .trim()
+    .matches(/^[6-9]\d{9}$/).withMessage('Valid 10-digit Indian mobile number required'),
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -158,13 +120,13 @@ router.post('/member/send-otp', [
     }
 
     const { phone } = req.body;
-    let member = await Member.findOne({ where: { phone } });
+    const member = await Member.findOne({ where: { phone } });
 
     if (!member) {
       return res.status(404).json({
         success: false,
         message: 'Phone number not registered. Please contact SITA Foundation.',
-        code: 'NOT_REGISTERED'
+        code: 'NOT_REGISTERED',
       });
     }
 
@@ -172,34 +134,38 @@ router.post('/member/send-otp', [
       return res.status(403).json({
         success: false,
         message: 'Your application has been rejected. Please contact support.',
-        code: 'REJECTED'
+        code: 'REJECTED',
       });
     }
 
-    const otp = generateOTP();
-    const otpExpiresAt = new Date(Date.now() + (parseInt(process.env.OTP_EXPIRY_MINUTES) || 10) * 60 * 1000);
+    const otp         = generateOTP();
+    const expMinutes  = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
+    const otpExpiresAt = new Date(Date.now() + expMinutes * 60 * 1000);
 
     await member.update({ otp, otp_expires_at: otpExpiresAt });
 
-    // In production: send via SMS (Twilio/MSG91/etc.)
-    // In development: log to console
-    console.log(`\n[OTP] Phone: ${phone} → OTP: ${otp} (expires: ${otpExpiresAt.toISOString()})\n`);
+    // Production: send via SMS gateway (Twilio / MSG91 / etc.)
+    console.log(`\n[OTP] ${phone} → ${otp}  (expires ${otpExpiresAt.toISOString()})\n`);
 
     res.json({
       success: true,
       message: 'OTP sent successfully',
-      // Dev only - remove in production:
-      ...(process.env.NODE_ENV === 'development' && { dev_otp: otp })
+      // Expose OTP in response body only in development — never in production
+      ...(process.env.NODE_ENV === 'development' && { dev_otp: otp }),
     });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /auth/member/verify-otp
+// ─── POST /auth/member/verify-otp ─────────────────────────────────────────────
 router.post('/member/verify-otp', [
-  body('phone').matches(/^[6-9]\d{9}$/).withMessage('Valid phone required'),
-  body('otp').isLength({ min: 6, max: 6 }).withMessage('6-digit OTP required')
+  body('phone')
+    .trim()
+    .matches(/^[6-9]\d{9}$/).withMessage('Valid 10-digit Indian mobile number required'),
+  body('otp')
+    .trim()
+    .matches(/^\d{6}$/).withMessage('6-digit numeric OTP required'),
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -214,15 +180,14 @@ router.post('/member/verify-otp', [
       return res.status(404).json({ success: false, message: 'Member not found' });
     }
 
-    // Allow bypass OTP in dev
     const bypassOtp = process.env.OTP_BYPASS;
-    const isValid = (bypassOtp && otp === bypassOtp) || member.isOtpValid(otp);
+    const isValid   = (bypassOtp && otp === bypassOtp) || member.isOtpValid(otp);
 
     if (!isValid) {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
-    // Clear OTP
+    // Consume OTP — prevent replay
     await member.update({ otp: null, otp_expires_at: null });
 
     const token = jwt.sign(
@@ -236,28 +201,33 @@ router.post('/member/verify-otp', [
       message: 'Login successful',
       token,
       member: {
-        id: member.id,
-        name: member.name,
-        phone: member.phone,
-        hotel_name: member.hotel_name,
-        status: member.status,
-        membership_paid: member.membership_paid,
-        sita_wallet_balance: member.sita_wallet_balance
-      }
+        id:                 member.id,
+        name:               member.name,
+        phone:              member.phone,
+        hotel_name:         member.hotel_name,
+        hotel_address:      member.hotel_address,
+        city:               member.city,
+        state:              member.state,
+        status:             member.status,
+        membership_paid:    member.membership_paid,
+        membership_expiry:  member.membership_expiry,
+        sita_wallet_balance: member.sita_wallet_balance,
+      },
     });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /auth/register — self-registration (multipart/form-data with KYC uploads)
+// ─── POST /auth/register — self-registration with KYC uploads ─────────────────
 router.post('/register', kycFields, async (req, res, next) => {
   try {
-    const phone = (req.body.mobile || req.body.phone || '').trim();
+    const phone     = (req.body.mobile || req.body.phone || '').trim();
     const hotelName = (req.body.business_name || req.body.hotel_name || '').trim();
-    const name = (req.body.name || '').trim();
+    const name      = (req.body.name || '').trim();
 
-    if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+    if (!name)
+      return res.status(400).json({ success: false, message: 'Name is required' });
     if (!phone || !/^[6-9]\d{9}$/.test(phone))
       return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number required' });
     if (!hotelName)
@@ -267,7 +237,6 @@ router.post('/register', kycFields, async (req, res, next) => {
     if (existing)
       return res.status(409).json({ success: false, message: 'This mobile number is already registered' });
 
-    // Helper: build a relative URL for an uploaded file
     const fileUrl = (fieldName) => {
       const f = req.files?.[fieldName]?.[0];
       return f ? `/uploads/kyc/${f.filename}` : null;
@@ -279,26 +248,26 @@ router.post('/register', kycFields, async (req, res, next) => {
     const member = await Member.create({
       name,
       phone,
-      email:         req.body.email?.trim() || null,
-      hotel_name:    hotelName,
-      hotel_address: (req.body.address || req.body.hotel_address || '').trim() || null,
-      city:          req.body.city?.trim()     || null,
-      state:         req.body.state?.trim()    || null,
-      pincode:       req.body.pincode?.trim()  || null,
-      district:      req.body.district?.trim() || null,
-      gstin:         (req.body.gst_number || req.body.gstin || '').trim() || null,
-      gst_number:    (req.body.gst_number || req.body.gstin || '').trim() || null,
-      category:      req.body.category || null,
+      email:                           req.body.email?.trim() || null,
+      hotel_name:                      hotelName,
+      hotel_address:                   (req.body.address || req.body.hotel_address || '').trim() || null,
+      city:                            req.body.city?.trim()    || null,
+      state:                           req.body.state?.trim()   || null,
+      pincode:                         req.body.pincode?.trim() || null,
+      district:                        req.body.district?.trim()|| null,
+      gstin:                           (req.body.gst_number || req.body.gstin || '').trim() || null,
+      gst_number:                      (req.body.gst_number || req.body.gstin || '').trim() || null,
+      category:                        req.body.category || null,
       business_reg_certificate_url:    fileUrl('business_reg_certificate'),
       fssai_license_url:               fileUrl('fssai_license'),
       establishment_front_photo_url:   fileUrl('establishment_front_photo'),
       billing_counter_photo_url:       fileUrl('billing_counter_photo'),
       kitchen_photo_url:               fileUrl('kitchen_photo'),
       menu_card_photo_url:             fileUrl('menu_card_photo'),
-      latitude:      lat,
-      longitude:     lng,
-      geo_timestamp: lat ? new Date() : null,
-      status:        'pending',
+      latitude:                        lat,
+      longitude:                       lng,
+      geo_timestamp:                   lat ? new Date() : null,
+      status:                          'pending',
     });
 
     res.status(201).json({
@@ -306,13 +275,15 @@ router.post('/register', kycFields, async (req, res, next) => {
       message: 'Registration submitted. Awaiting admin approval.',
       member: { id: member.id, name: member.name, phone: member.phone, status: member.status },
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
-// POST /auth/admin/login
+// ─── POST /auth/admin/login ───────────────────────────────────────────────────
 router.post('/admin/login', [
-  body('email').isEmail().withMessage('Valid email required'),
-  body('password').notEmpty().withMessage('Password required')
+  body('email').trim().isEmail().normalizeEmail().withMessage('Valid email required'),
+  body('password').notEmpty().withMessage('Password required'),
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -323,12 +294,8 @@ router.post('/admin/login', [
     const { email, password } = req.body;
     const admin = await Admin.findOne({ where: { email, is_active: true } });
 
-    if (!admin) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
-    }
-
-    const isMatch = await admin.comparePassword(password);
-    if (!isMatch) {
+    // Return same message for not-found and wrong password — prevents user enumeration
+    if (!admin || !(await admin.comparePassword(password))) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
@@ -342,7 +309,7 @@ router.post('/admin/login', [
       success: true,
       message: 'Admin login successful',
       token,
-      admin: admin.toJSON()
+      admin: admin.toJSON(),
     });
   } catch (err) {
     next(err);
