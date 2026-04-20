@@ -1,0 +1,105 @@
+.header {
+  background: var(--primary);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 0 0 24px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(26,35,126,0.3);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backBtn {
+  background: none;
+  color: white;
+  font-size: 28px;
+  line-height: 1;
+  padding: 0 4px;
+  opacity: 0.9;
+}
+.backBtn:hover { opacity: 1; }
+
+.logo {
+  height: 44px;
+  object-fit: contain;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.cartBtn {
+  background: none;
+  color: white;
+  font-size: 22px;
+  position: relative;
+  padding: 4px 8px;
+}
+
+.badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logoutBtn {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.logoutBtn:hover { background: rgba(255,255,255,0.25); }
+
+.memberInfo {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.15);
+}
+
+.greeting {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+}
+
+.memberName {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+.hotelName {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}

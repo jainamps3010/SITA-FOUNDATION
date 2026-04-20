@@ -1,39 +1,56 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
-const CartContext = createContext();
+const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState([]);
+  const [items, setItems] = useState([]);
 
-  const addToCart = (product) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i._id === product._id);
-      if (existing) return prev.map((i) => i._id === product._id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...product, qty: 1 }];
+  const addItem = useCallback((product, qty = 1) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((i) => i.product.id === product.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + qty };
+        return next;
+      }
+      return [...prev, { product, quantity: qty }];
     });
-  };
+  }, []);
 
-  const updateQty = (id, qty) => {
-    if (qty <= 0) return removeFromCart(id);
-    setCart((prev) => prev.map((i) => i._id === id ? { ...i, qty } : i));
-  };
+  const removeItem = useCallback((productId) => {
+    setItems((prev) => prev.filter((i) => i.product.id !== productId));
+  }, []);
 
-  const removeFromCart = (id) => setCart((prev) => prev.filter((i) => i._id !== id));
+  const updateQty = useCallback((productId, qty) => {
+    if (qty <= 0) {
+      setItems((prev) => prev.filter((i) => i.product.id !== productId));
+    } else {
+      setItems((prev) =>
+        prev.map((i) => (i.product.id === productId ? { ...i, quantity: qty } : i))
+      );
+    }
+  }, []);
 
-  const clearCart = () => setCart([]);
+  const clear = useCallback(() => setItems([]), []);
 
-  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
-
-  const marketTotal = cart.reduce((s, i) => s + i.market_price * i.qty, 0);
-  const sitaTotal = cart.reduce((s, i) => s + i.sita_price * i.qty, 0);
-  const foundationFee = Math.round(marketTotal * 0.02);
-  const totalPayable = sitaTotal + foundationFee;
+  const count = items.length;
+  const subtotal = items.reduce((s, i) => s + i.product.price_per_unit * i.quantity, 0);
+  const marketValueTotal = items.reduce(
+    (s, i) => s + (i.product.market_price ?? i.product.price_per_unit) * i.quantity,
+    0
+  );
+  const foundationFee = marketValueTotal * 0.02;
+  const total = subtotal + foundationFee;
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, updateQty, removeFromCart, clearCart, cartCount, marketTotal, sitaTotal, foundationFee, totalPayable }}>
+    <CartContext.Provider
+      value={{ items, addItem, removeItem, updateQty, clear, count, subtotal, marketValueTotal, foundationFee, total }}
+    >
       {children}
     </CartContext.Provider>
   );
 }
 
-export const useCart = () => useContext(CartContext);
+export function useCart() {
+  return useContext(CartContext);
+}
