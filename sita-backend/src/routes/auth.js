@@ -7,6 +7,9 @@ const { Member, Admin, SurveyAgent } = require('../models');
 const { generateOTP } = require('../utils/helpers');
 const { createSecureUpload } = require('../middleware/uploadSecurity');
 
+// ─── Twilio client ────────────────────────────────────────────────────────────
+const { client: twilioClient, phoneNumber: TWILIO_FROM } = require('../config/twilio');
+
 // ─── Secure KYC upload (shared helper enforces MIME + extension + 10 MB) ──────
 const kycUpload = createSecureUpload('kyc');
 const kycFields = kycUpload.fields([
@@ -144,12 +147,20 @@ router.post('/member/send-otp', [
 
     await member.update({ otp, otp_expires_at: otpExpiresAt });
 
-    // Production: send via SMS gateway (Twilio / MSG91 / etc.)
-    console.log(`\n[OTP] ${phone} → ${otp}  (expires ${otpExpiresAt.toISOString()})\n`);
+    console.log(`\n[OTP] Generated for ${phone}: ${otp}  (expires ${otpExpiresAt.toISOString()})`);
+
+    // ── Twilio SMS send ────────────────────────────────────────────────────────
+    console.log(`[Twilio] Sending SMS to +91${phone} from ${TWILIO_FROM}...`);
+    const message = await twilioClient.messages.create({
+      body: `Your SITA Foundation OTP is: ${otp}`,
+      from: TWILIO_FROM,
+      to: '+91' + phone,
+    });
+    console.log(`[Twilio] SMS sent. SID: ${message.sid}, Status: ${message.status}`);
 
     res.json({
       success: true,
-      message: 'OTP sent successfully',
+      message: `OTP sent to +91 ${phone}`,
       // Expose OTP in response body only in development — never in production
       ...(process.env.NODE_ENV === 'development' && { dev_otp: otp }),
     });
