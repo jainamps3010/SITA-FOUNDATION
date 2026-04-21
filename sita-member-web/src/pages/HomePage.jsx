@@ -72,6 +72,8 @@ export default function HomePage() {
     { icon: '📋', label: 'My Orders', color: '#FF9800', path: '/orders' },
     { icon: '👛', label: 'Wallet', color: '#1A237E', path: '/wallet' },
     { icon: '👤', label: 'Profile', color: '#9C27B0', path: '/profile' },
+    { icon: '💬', label: 'Feedback', color: '#00897B', path: '/feedback' },
+    { icon: '📞', label: 'Contact Us', color: '#1565C0', path: '/contact' },
   ];
 
   return (

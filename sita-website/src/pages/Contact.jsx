@@ -10,14 +10,16 @@ const contactInfo = [
   {
     icon: '📞',
     title: 'Phone',
-    lines: ['+91 98765 43210', '+91 79 2600 0000'],
-    link: 'tel:+919876543210',
+    lines: [
+      { text: '+91 7069924365', link: 'tel:+917069924365' },
+      { text: '+91 7069824365', link: 'tel:+917069824365' },
+      { text: 'WhatsApp: +91 7069924365', link: 'https://wa.me/917069924365' },
+    ],
   },
   {
     icon: '✉️',
     title: 'Email',
-    lines: ['info@sitafoundation.in', 'support@sitafoundation.in'],
-    link: 'mailto:info@sitafoundation.in',
+    lines: [{ text: 'chairman@sita.foundation', link: 'mailto:chairman@sita.foundation' }],
   },
   {
     icon: '🕐',
@@ -170,11 +172,13 @@ export default function Contact() {
                     <div className="info-icon">{c.icon}</div>
                     <div>
                       <div className="info-title">{c.title}</div>
-                      {c.lines.map((l, i) => (
-                        c.link && i === 0
-                          ? <a key={l} href={c.link} className="info-line link">{l}</a>
-                          : <div key={l} className="info-line">{l}</div>
-                      ))}
+                      {c.lines.map((l) => {
+                        const text = typeof l === 'string' ? l : l.text;
+                        const link = typeof l === 'object' ? l.link : null;
+                        return link
+                          ? <a key={text} href={link} className="info-line link">{text}</a>
+                          : <div key={text} className="info-line">{text}</div>;
+                      })}
                     </div>
                   </div>
                 ))}
@@ -183,7 +187,7 @@ export default function Contact() {
               <div className="vendor-cta">
                 <h4>Are You a Vendor?</h4>
                 <p>List your products on SITA and reach 500+ hotel buyers directly.</p>
-                <a href="mailto:vendors@sitafoundation.in" className="btn-secondary">
+                <a href="mailto:chairman@sita.foundation" className="btn-secondary">
                   Partner With Us
                 </a>
               </div>

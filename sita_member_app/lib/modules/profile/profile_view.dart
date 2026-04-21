@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../app/theme/app_theme.dart';
+import '../../app/routes/app_routes.dart';
 import '../../widgets/common_widgets.dart';
+import '../../widgets/contact_sheet.dart';
 import 'profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
@@ -219,7 +221,27 @@ class ProfileView extends GetView<ProfileController> {
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => showContactSheet(context),
+                icon: const Icon(Icons.support_agent_outlined, color: AppColors.primary),
+                label: const Text('Contact Us',
+                    style: TextStyle(color: AppColors.primary)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.primary),
+                ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => Get.toNamed(Routes.feedback),
+                icon: const Icon(Icons.feedback_outlined, color: AppColors.success),
+                label: const Text('Give Feedback',
+                    style: TextStyle(color: AppColors.success)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.success),
+                ),
+              ),
+              const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: () => _confirmLogout(context),
                 icon: const Icon(Icons.logout, color: AppColors.error),

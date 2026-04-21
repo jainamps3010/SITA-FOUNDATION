@@ -1,0 +1,134 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 70px;
+}
+
+.header {
+  background: var(--primary);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+}
+
+.back {
+  background: none;
+  color: white;
+  font-size: 28px;
+  line-height: 1;
+  padding: 0 8px;
+  width: 40px;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.content {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.logoWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 20px;
+  background: white;
+  border-radius: 20px;
+  border: 1px solid var(--divider);
+  margin-bottom: 4px;
+}
+
+.logo { height: 64px; object-fit: contain; margin-bottom: 10px; }
+
+.orgName {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.orgSub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--divider);
+  padding: 16px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 0.15s;
+}
+
+.card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+.cardIcon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardBody { flex: 1; }
+
+.cardLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.cardValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cardArrow {
+  font-size: 22px;
+  font-weight: 300;
+}
+
+/* Bottom Nav */
+.bottomNav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: white;
+  border-top: 1px solid var(--divider);
+  display: flex;
+  padding: 8px 0 12px;
+  z-index: 100;
+}
+
+.navItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.navIcon { font-size: 20px; }
+.navLabel { font-size: 11px; font-weight: 500; }

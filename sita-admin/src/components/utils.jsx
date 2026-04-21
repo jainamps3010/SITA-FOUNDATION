@@ -7,7 +7,7 @@ export const statusBadge = (status) => {
     delivered: 'badge-success', confirmed: 'badge-info',
     dispatched: 'badge-info', cancelled: 'badge-danger',
     disputed: 'badge-danger', open: 'badge-danger',
-    investigating: 'badge-warning', resolved: 'badge-success',
+    investigating: 'badge-warning', resolved: 'badge-success', reviewed: 'badge-info',
     paid: 'badge-success', refunded: 'badge-info',
     expired: 'badge-gray'
   };

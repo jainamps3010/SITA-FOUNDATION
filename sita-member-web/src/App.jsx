@@ -11,6 +11,8 @@ import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import WalletPage from './pages/WalletPage';
 import ProfilePage from './pages/ProfilePage';
+import ContactPage from './pages/ContactPage';
+import FeedbackPage from './pages/FeedbackPage';
 
 export default function App() {
   return (
@@ -26,6 +28,8 @@ export default function App() {
             <Route path="/orders/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
             <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/contact" element={<ProtectedRoute><ContactPage /></ProtectedRoute>} />
+            <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </CartProvider>

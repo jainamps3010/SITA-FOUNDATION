@@ -161,6 +161,22 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Feedback & Contact */}
+        <button
+          className={styles.logoutBtn}
+          style={{ background: '#E8F5E9', color: '#2E7D32', borderColor: '#A5D6A7' }}
+          onClick={() => navigate('/feedback')}
+        >
+          💬 Give Feedback
+        </button>
+        <button
+          className={styles.logoutBtn}
+          style={{ background: '#E3F2FD', color: '#1565C0', borderColor: '#90CAF9' }}
+          onClick={() => navigate('/contact')}
+        >
+          📞 Contact Us
+        </button>
+
         {/* Logout */}
         <button className={styles.logoutBtn} onClick={() => setShowLogoutDialog(true)}>
           🚪 Logout

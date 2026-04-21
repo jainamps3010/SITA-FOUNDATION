@@ -23,6 +23,8 @@ import '../../modules/profile/profile_binding.dart';
 import '../../modules/profile/profile_view.dart';
 import '../../modules/membership/membership_payment_binding.dart';
 import '../../modules/membership/membership_payment_view.dart';
+import '../../modules/feedback/feedback_binding.dart';
+import '../../modules/feedback/feedback_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -91,6 +93,11 @@ class AppPages {
       name: Routes.profile,
       page: () => const ProfileView(),
       binding: ProfileBinding(),
+    ),
+    GetPage(
+      name: Routes.feedback,
+      page: () => const FeedbackView(),
+      binding: FeedbackBinding(),
     ),
   ];
 }

@@ -790,6 +790,11 @@ router.get('/disputes', async (req, res, next) => {
     const { page, limit, offset } = paginate(req.query);
     const where = {};
     if (req.query.status) where.status = req.query.status;
+    if (req.query.type === 'feedback') {
+      where.type = 'feedback';
+    } else {
+      where.type = { [Op.or]: [{ [Op.eq]: 'dispute' }, { [Op.is]: null }] };
+    }
 
     const { count, rows } = await Dispute.findAndCountAll({
       where,
@@ -802,6 +807,16 @@ router.get('/disputes', async (req, res, next) => {
       limit, offset
     });
     res.json({ success: true, ...paginatedResponse(rows, count, page, limit) });
+  } catch (err) { next(err); }
+});
+
+// PUT /admin/disputes/:id/mark-reviewed
+router.put('/disputes/:id/mark-reviewed', async (req, res, next) => {
+  try {
+    const dispute = await Dispute.findByPk(req.params.id);
+    if (!dispute) return res.status(404).json({ success: false, message: 'Not found' });
+    await dispute.update({ status: 'reviewed', resolved_at: new Date(), resolved_by: req.admin.id });
+    res.json({ success: true, message: 'Marked as reviewed', dispute });
   } catch (err) { next(err); }
 });
 

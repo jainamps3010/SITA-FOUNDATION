@@ -3,7 +3,7 @@
 const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 const { authenticateMember, requireMembership } = require('../middleware/auth');
-const { Member, SITAWalletTransaction, Order, OrderItem, Product, Vendor } = require('../models');
+const { Member, SITAWalletTransaction, Order, OrderItem, Product, Vendor, Dispute } = require('../models');
 const { paginate, paginatedResponse } = require('../utils/helpers');
 
 // GET /members/profile
@@ -213,6 +213,33 @@ router.post('/register', [
       message: 'Registration submitted. Awaiting admin approval.',
       member: { id: member.id, name: member.name, phone: member.phone, status: member.status }
     });
+  } catch (err) { next(err); }
+});
+
+// POST /members/feedback
+router.post('/feedback', authenticateMember, [
+  body('category').notEmpty().withMessage('Category is required'),
+  body('description').trim().isLength({ min: 20 }).withMessage('Description must be at least 20 characters'),
+  body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
+  body('order_id').optional({ nullable: true, checkFalsy: true }).isUUID().withMessage('Invalid order ID'),
+], async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const feedback = await Dispute.create({
+      type: 'feedback',
+      member_id: req.member.id,
+      description: req.body.description.trim(),
+      category: req.body.category,
+      rating: req.body.rating,
+      order_id: req.body.order_id || null,
+      status: 'open',
+    });
+
+    res.json({ success: true, message: 'Feedback submitted successfully', feedback });
   } catch (err) { next(err); }
 });
 

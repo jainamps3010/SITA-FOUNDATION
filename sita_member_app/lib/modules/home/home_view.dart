@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../app/theme/app_theme.dart';
 import '../../app/routes/app_routes.dart';
-import '../../widgets/common_widgets.dart';
+import '../../widgets/contact_sheet.dart';
 import '../cart/cart_controller.dart';
 import 'home_controller.dart';
 
@@ -187,7 +187,7 @@ class HomeView extends GetView<HomeController> {
   }
 
   Widget _buildQuickActions() {
-    final actions = [
+    final row1 = [
       _QuickAction(
           icon: Icons.storefront_outlined,
           label: 'Marketplace',
@@ -210,6 +210,31 @@ class HomeView extends GetView<HomeController> {
           onTap: () => Get.toNamed(Routes.profile)),
     ];
 
+    final row2 = [
+      _QuickAction(
+          icon: Icons.support_agent_outlined,
+          label: 'Contact Us',
+          color: AppColors.secondary,
+          onTap: () => showContactSheet(Get.context!)),
+      _QuickAction(
+          icon: Icons.feedback_outlined,
+          label: 'Feedback',
+          color: AppColors.success,
+          onTap: () => Get.toNamed(Routes.feedback)),
+    ];
+
+    Widget actionRow(List<_QuickAction> actions) => Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: actions
+              .map((a) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _QuickActionCard(action: a),
+                    ),
+                  ))
+              .toList(),
+        );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
       child: Column(
@@ -221,17 +246,9 @@ class HomeView extends GetView<HomeController> {
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: actions
-                .map((a) => Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: _QuickActionCard(action: a),
-                      ),
-                    ))
-                .toList(),
-          ),
+          actionRow(row1),
+          const SizedBox(height: 10),
+          actionRow(row2),
         ],
       ),
     );

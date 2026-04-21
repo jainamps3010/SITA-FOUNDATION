@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const baseUrl = 'http://10.0.2.2:3000/api/v1';
 
@@ -909,7 +910,166 @@ class HomeScreen extends StatelessWidget {
                 MaterialPageRoute(
                     builder: (_) => const MySurveysScreen())),
           ),
+          const SizedBox(height: 12),
+          _HomeActionCard(
+            icon: Icons.contact_support_outlined,
+            iconBg: const Color(0xFFE8F5E9),
+            iconColor: const Color(0xFF2E7D32),
+            title: 'Contact Us',
+            subtitle: 'Reach SITA Foundation support',
+            onTap: () => _showContactSheet(context),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+void _showContactSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) => const _ContactBottomSheet(),
+  );
+}
+
+class _ContactBottomSheet extends StatelessWidget {
+  const _ContactBottomSheet();
+
+  Future<void> _launch(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: kDivider,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: kPrimary.withOpacity(0.2), width: 2),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+            ),
+            child: ClipOval(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text('Contact SITA Foundation',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kPrimary)),
+          const SizedBox(height: 4),
+          const Text('We\'re here to help',
+              style: TextStyle(color: kTextSecondary, fontSize: 13)),
+          const SizedBox(height: 24),
+          _ContactTile(
+            icon: Icons.email_outlined,
+            color: kPrimary,
+            title: 'Email',
+            subtitle: 'chairman@sita.foundation',
+            onTap: () => _launch('mailto:chairman@sita.foundation'),
+          ),
+          const SizedBox(height: 10),
+          _ContactTile(
+            icon: Icons.phone_outlined,
+            color: kSuccess,
+            title: 'Phone 1',
+            subtitle: '+91 7069924365',
+            onTap: () => _launch('tel:+917069924365'),
+          ),
+          const SizedBox(height: 10),
+          _ContactTile(
+            icon: Icons.phone_outlined,
+            color: kSuccess,
+            title: 'Phone 2',
+            subtitle: '+91 7069824365',
+            onTap: () => _launch('tel:+917069824365'),
+          ),
+          const SizedBox(height: 10),
+          _ContactTile(
+            icon: Icons.chat_outlined,
+            color: const Color(0xFF25D366),
+            title: 'WhatsApp',
+            subtitle: '+91 7069924365',
+            onTap: () => _launch('https://wa.me/917069924365'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ContactTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kDivider, width: 0.8),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                  Text(subtitle,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kTextPrimary)),
+                ],
+              ),
+            ),
+            Icon(Icons.open_in_new_rounded, color: color, size: 18),
+          ],
+        ),
       ),
     );
   }

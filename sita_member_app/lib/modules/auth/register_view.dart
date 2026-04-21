@@ -82,7 +82,7 @@ class RegisterView extends GetView<RegisterController> {
                 _field(controller.businessCtrl, 'Restaurant / Hotel name'),
                 _label('Business Category *'),
                 Obx(() => DropdownButtonFormField<BusinessCategory>(
-                      value: controller.selectedCategory.value,
+                      initialValue: controller.selectedCategory.value,
                       decoration: const InputDecoration(hintText: 'Select category…'),
                       items: kCategories
                           .map((c) => DropdownMenuItem(
@@ -433,7 +433,7 @@ class RegisterView extends GetView<RegisterController> {
     required VoidCallback onTap,
   }) {
     final picked = file != null;
-    final isPdf = picked && file!.name.toLowerCase().endsWith('.pdf');
+    final isPdf = picked && file.name.toLowerCase().endsWith('.pdf');
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -463,7 +463,7 @@ class RegisterView extends GetView<RegisterController> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                picked ? file!.name : label,
+                picked ? file.name : label,
                 style: TextStyle(
                   fontSize: 13.5,
                   color: picked ? AppColors.success : AppColors.textSecondary,
@@ -509,7 +509,7 @@ class RegisterView extends GetView<RegisterController> {
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.file(File(file!.path), fit: BoxFit.cover),
+                  Image.file(File(file.path), fit: BoxFit.cover),
                   Positioned(
                     top: 4,
                     right: 4,
