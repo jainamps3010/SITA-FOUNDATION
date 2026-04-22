@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { statusBadge, formatDate, formatCurrency, Pagination } from '../components/utils';
 
@@ -40,9 +40,13 @@ const openDoc = (url) => {
 /**
  * DocCard — clickable card for a single uploaded document.
  * Shows a thumbnail for images, a PDF icon for PDFs, and "Not uploaded" when missing.
+ * If an image URL turns out to contain a PDF (wrong extension), imgFailed state
+ * switches it to the document-icon view so the "View" button still works.
  */
 const DocCard = ({ url, label }) => {
+  const [imgFailed, setImgFailed] = useState(false);
   const href = fullUrl(url);
+
   if (!href) {
     return (
       <div style={{
@@ -59,6 +63,9 @@ const DocCard = ({ url, label }) => {
     );
   }
 
+  // Treat as document (PDF icon) if: extension is .pdf OR image failed to render
+  const showAsDocument = isPdf(url) || imgFailed;
+
   return (
     <div
       onClick={() => openDoc(url)}
@@ -73,30 +80,23 @@ const DocCard = ({ url, label }) => {
       onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}
     >
       {/* Preview area */}
-      {isPdf(url) ? (
+      {showAsDocument ? (
         <div style={{
           height: 72, background: '#fef2f2',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 2,
         }}>
-          <span style={{ fontSize: 32 }}>📑</span>
+          <span style={{ fontSize: 28 }}>📑</span>
+          <span style={{ fontSize: 10, color: '#b91c1c', fontWeight: 600 }}>PDF — Click to View</span>
         </div>
       ) : (
-        <div style={{ height: 72, background: '#f3f4f6', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ height: 72, background: '#f3f4f6', overflow: 'hidden' }}>
           <img
             src={href}
             alt={label}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            onError={e => {
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'flex';
-            }}
+            onError={() => setImgFailed(true)}
           />
-          {/* Fallback shown only if img fails */}
-          <div style={{
-            display: 'none', position: 'absolute', inset: 0,
-            alignItems: 'center', justifyContent: 'center',
-            background: '#f3f4f6', fontSize: 28,
-          }}>🖼️</div>
         </div>
       )}
 
@@ -110,7 +110,7 @@ const DocCard = ({ url, label }) => {
         <span style={{
           fontSize: 10, color: '#1A237E', fontWeight: 700,
           background: '#e8f0fe', borderRadius: 4, padding: '2px 6px',
-        }}>Open ↗</span>
+        }}>View ↗</span>
       </div>
     </div>
   );
@@ -568,10 +568,10 @@ export default function MembersPage() {
               {/* Documents */}
               <div style={{ marginTop: '16px', borderTop: '1px solid #e5e7eb', paddingTop: '14px' }}>
                 <div style={{ fontWeight: 600, fontSize: '13px', color: '#374151', marginBottom: '10px' }}>
-                  📄 Documents
+                  📄 KYC Documents
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <DocCard url={selected.business_reg_certificate_url} label="Business Reg. Cert" />
+                  <DocCard url={selected.business_reg_certificate_url} label="GST / Business Reg. Cert" />
                   <DocCard url={selected.fssai_license_url} label="FSSAI License" />
                 </div>
               </div>

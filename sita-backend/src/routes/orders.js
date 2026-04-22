@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const { authenticateMember, requireMembership } = require('../middleware/auth');
 const { Order, OrderItem, Product, Vendor, Member, Dispute, SITAWalletTransaction, sequelize } = require('../models');
 const { generateOrderNumber, generateDeliveryOTP, calculateSplit } = require('../utils/helpers');
+const { sendOrderConfirmationEmail } = require('../services/emailService');
 
 // POST /orders - Create new order
 router.post('/', authenticateMember, requireMembership, [
@@ -59,6 +60,14 @@ router.post('/', authenticateMember, requireMembership, [
         return res.status(400).json({
           success: false,
           message: `Minimum order quantity for "${product.name}" is ${product.moq} ${product.unit}`
+        });
+      }
+      // Check stock availability (stock_quantity > 0 means stock is being tracked)
+      if (product.stock_quantity > 0 && item.quantity > product.stock_quantity) {
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for "${product.name}". Available: ${product.stock_quantity} ${product.unit}`
         });
       }
       const item_total = parseFloat((product.price_per_unit * item.quantity).toFixed(2));
@@ -118,6 +127,18 @@ router.post('/', authenticateMember, requireMembership, [
     const orderItems = orderItemsData.map(i => ({ ...i, order_id: order.id }));
     await OrderItem.bulkCreate(orderItems, { transaction: t });
 
+    // Decrement tracked stock for each product
+    for (const item of items) {
+      const product = productMap[item.product_id];
+      if (product.stock_quantity > 0) {
+        await Product.decrement('stock_quantity', {
+          by: item.quantity,
+          where: { id: product.id },
+          transaction: t
+        });
+      }
+    }
+
     // Deduct wallet balance if paid by wallet
     if (payment_method === 'wallet') {
       const newBalance = parseFloat((req.member.sita_wallet_balance - wallet_amount_used).toFixed(2));
@@ -143,6 +164,9 @@ router.post('/', authenticateMember, requireMembership, [
         { model: Vendor, as: 'vendor', attributes: ['id', 'company_name', 'phone'] }
       ]
     });
+
+    // Send confirmation email (non-blocking — never fail the response)
+    sendOrderConfirmationEmail(req.member, fullOrder).catch(() => {});
 
     res.status(201).json({
       success: true,

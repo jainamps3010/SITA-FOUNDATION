@@ -5,7 +5,14 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
+
+// Ensure upload directories exist on startup
+['kyc', 'invoices', 'delivery-photos'].forEach(dir => {
+  const fullPath = path.join(__dirname, '../uploads', dir);
+  if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath, { recursive: true });
+});
 
 const { sanitizeInputs } = require('./middleware/sanitize');
 const { errorHandler, notFound } = require('./middleware/error');
@@ -173,11 +180,14 @@ app.use('/api/v1/auth/send-otp',        otpSendLimiter);
 app.use('/api/v1/auth/member/verify-otp', otpVerifyLimiter);
 app.use('/api/v1/auth/verify-otp',        otpVerifyLimiter);
 
-// ─── Static uploads — served with restrictive headers ─────────────────────────
-// Files are served as downloads, not executed, preventing stored-XSS via uploads.
+// ─── Static uploads ────────────────────────────────────────────────────────────
+// Images and PDFs open inline (needed for admin panel thumbnails / previews).
+// Any other file type (html, js, etc.) is forced to download.
+const INLINE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf']);
 app.use('/uploads', (req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Content-Disposition', 'attachment');
+  const ext = path.extname(req.path).toLowerCase();
+  res.setHeader('Content-Disposition', INLINE_EXTS.has(ext) ? 'inline' : 'attachment');
   next();
 }, express.static(path.join(__dirname, '../uploads')));
 

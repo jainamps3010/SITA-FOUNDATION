@@ -9,6 +9,9 @@ const { v4: uuidv4 } = require('uuid');
 const { createEntity, getEntities, submitConsumption, scanInvoice } = require('../controllers/surveyController');
 
 // ─── Multer: Invoice photo uploads ────────────────────────────────────────────
+const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png']);
+const MIME_TO_EXT = { 'image/jpeg': '.jpg', 'image/jpg': '.jpg', 'image/png': '.png' };
+
 const invoiceStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../../uploads/invoices');
@@ -16,23 +19,19 @@ const invoiceStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
+    const ext = MIME_TO_EXT[file.mimetype] || '.jpg';
     cb(null, `${uuidv4()}${ext}`);
   },
 });
-const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png']);
-const ALLOWED_IMAGE_EXTS  = new Set(['.jpg', '.jpeg', '.png']);
 
 const invoiceUpload = multer({
   storage: invoiceStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ALLOWED_IMAGE_MIMES.has(file.mimetype) || ALLOWED_IMAGE_EXTS.has(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPG, JPEG and PNG images are allowed'));
+    if (!ALLOWED_IMAGE_MIMES.has(file.mimetype)) {
+      return cb(new Error('Only JPG, JPEG and PNG images are allowed'));
     }
+    cb(null, true);
   },
 });
 

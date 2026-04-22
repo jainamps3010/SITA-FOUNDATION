@@ -25,6 +25,14 @@ const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.pdf']);
  *  - UUID-randomised filenames (prevents path traversal)
  */
 function createSecureUpload(destSubdir) {
+  // Map MIME type → canonical extension (source of truth is the content, not the filename)
+  const MIME_TO_EXT = {
+    'image/jpeg':      '.jpg',
+    'image/jpg':       '.jpg',
+    'image/png':       '.png',
+    'application/pdf': '.pdf',
+  };
+
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
       const dir = path.join(__dirname, '../../uploads', destSubdir);
@@ -32,18 +40,16 @@ function createSecureUpload(destSubdir) {
       cb(null, dir);
     },
     filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      // Only allow whitelisted extensions — ignore whatever the client claims
-      if (!ALLOWED_EXTENSIONS.has(ext)) {
-        return cb(new Error(`File type not allowed: ${ext}`));
-      }
+      // Use the extension derived from MIME type, not whatever the client claims.
+      // This prevents PDFs being saved as .jpg and images being saved as .pdf.
+      const ext = MIME_TO_EXT[file.mimetype];
+      if (!ext) return cb(new Error(`Unsupported MIME type: ${file.mimetype}`));
       cb(null, `${uuidv4()}${ext}`);
     },
   });
 
   const fileFilter = (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (!ALLOWED_MIME_TYPES.has(file.mimetype) || !ALLOWED_EXTENSIONS.has(ext)) {
+    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
       return cb(Object.assign(new Error('Only JPG, JPEG, PNG and PDF files are allowed'), { status: 400 }));
     }
     cb(null, true);

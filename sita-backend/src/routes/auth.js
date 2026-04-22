@@ -47,10 +47,23 @@ router.post('/send-otp', async (req, res) => {
     }
   }
 
+  // 1-minute cooldown: prevent rapid successive OTP requests
+  const existing = driverOtpStore.get(mobile);
+  if (existing) {
+    const msElapsed = Date.now() - existing.sentAt;
+    if (msElapsed < 60 * 1000) {
+      const secondsLeft = Math.ceil((60 * 1000 - msElapsed) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${secondsLeft} second${secondsLeft !== 1 ? 's' : ''} before requesting a new OTP.`
+      });
+    }
+  }
+
   const otp       = generateOTP();
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-  driverOtpStore.set(mobile, { otp, expiresAt, attempts: 0 });
+  driverOtpStore.set(mobile, { otp, expiresAt, attempts: 0, sentAt: Date.now() });
   console.log(`\n[DEV OTP] ${mobile}: ${otp}\n`);
 
   res.json({ success: true, message: 'OTP sent' });
@@ -141,8 +154,22 @@ router.post('/member/send-otp', [
       });
     }
 
-    const otp         = generateOTP();
     const expMinutes  = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
+
+    // 1-minute cooldown: prevent rapid successive OTP requests
+    if (member.otp_expires_at) {
+      const sentAt    = member.otp_expires_at.getTime() - expMinutes * 60 * 1000;
+      const msElapsed = Date.now() - sentAt;
+      if (msElapsed < 60 * 1000) {
+        const secondsLeft = Math.ceil((60 * 1000 - msElapsed) / 1000);
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${secondsLeft} second${secondsLeft !== 1 ? 's' : ''} before requesting a new OTP.`
+        });
+      }
+    }
+
+    const otp          = generateOTP();
     const otpExpiresAt = new Date(Date.now() + expMinutes * 60 * 1000);
 
     await member.update({ otp, otp_expires_at: otpExpiresAt });
