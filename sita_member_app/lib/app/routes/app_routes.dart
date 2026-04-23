@@ -14,4 +14,5 @@ abstract class Routes {
   static const wallet = '/wallet';
   static const profile = '/profile';
   static const feedback = '/feedback';
+  static const editReorder = '/edit-reorder';
 }

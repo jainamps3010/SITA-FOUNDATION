@@ -181,6 +181,39 @@ router.post('/', authenticateMember, requireMembership, [
   }
 });
 
+// GET /orders/last-order - Get member's most recent order with current stock info
+router.get('/last-order', authenticateMember, async (req, res, next) => {
+  try {
+    const order = await Order.findOne({
+      where: { member_id: req.member.id },
+      include: [
+        {
+          model: OrderItem, as: 'items',
+          include: [{
+            model: Product, as: 'product',
+            attributes: ['id', 'available', 'stock_quantity', 'price_per_unit', 'market_price', 'unit', 'moq', 'image_url', 'category', 'vendor_id']
+          }]
+        },
+        { model: Vendor, as: 'vendor', attributes: ['id', 'company_name', 'phone', 'email'] }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    if (!order) {
+      return res.json({ success: true, order: null });
+    }
+
+    const orderData = order.toJSON();
+    orderData.items = orderData.items.map(item => ({
+      ...item,
+      is_unavailable: !item.product?.available ||
+        (item.product?.stock_quantity > 0 && item.product?.stock_quantity < item.quantity)
+    }));
+
+    res.json({ success: true, order: orderData });
+  } catch (err) { next(err); }
+});
+
 // GET /orders/:id
 router.get('/:id', authenticateMember, async (req, res, next) => {
   try {

@@ -16,11 +16,12 @@ class HomeView extends GetView<HomeController> {
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
-          onRefresh: controller.fetchProfile,
+          onRefresh: controller.refreshAll,
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _buildHeader()),
               SliverToBoxAdapter(child: _buildWalletCard()),
+              SliverToBoxAdapter(child: _buildLastOrderCard()),
               SliverToBoxAdapter(child: _buildQuickActions()),
               SliverToBoxAdapter(child: _buildMembershipStatus()),
               SliverToBoxAdapter(child: _buildRecentSection()),
@@ -184,6 +185,175 @@ class HomeView extends GetView<HomeController> {
         ),
       ),
     );
+  }
+
+  Widget _buildLastOrderCard() {
+    return Obx(() {
+      if (controller.isLoadingLastOrder.value) {
+        return const Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: SizedBox(
+            height: 4,
+            child: LinearProgressIndicator(),
+          ),
+        );
+      }
+
+      final order = controller.lastOrder.value;
+      if (order == null) return const SizedBox.shrink();
+
+      final items = order.items;
+      final displayItems = items.take(3).toList();
+      final extraCount = items.length - displayItems.length;
+
+      double totalSavings = 0;
+      for (final item in items) {
+        final mp = item.currentMarketPrice ?? item.marketPrice;
+        if (mp != null) {
+          final saving = (mp - item.unitPrice) * item.quantity;
+          if (saving > 0) totalSavings += saving;
+        }
+      }
+
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE3F2FD),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF90CAF9)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.replay_rounded,
+                      color: Color(0xFF1565C0), size: 18),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('Your Last Order',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: Color(0xFF1565C0))),
+                  ),
+                  Text(
+                    _formatDate(order.createdAt),
+                    style: const TextStyle(
+                        color: Color(0xFF42A5F5), fontSize: 12),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Divider(color: Color(0xFFBBDEFB), height: 1),
+              const SizedBox(height: 10),
+              ...displayItems.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.circle,
+                            size: 6, color: Color(0xFF42A5F5)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item.productName,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textPrimary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${item.quantity} ${item.productUnit}',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  )),
+              if (extraCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    '+$extraCount more item${extraCount == 1 ? '' : 's'}',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF42A5F5),
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹${order.totalAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            color: AppColors.textPrimary),
+                      ),
+                      if (totalSavings > 0)
+                        Text(
+                          'You saved ₹${totalSavings.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w600),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: controller.repeatOrder,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
+                        minimumSize: const Size(0, 40),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Repeat Order',
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: controller.editAndReorder,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1565C0),
+                        side: const BorderSide(
+                            color: Color(0xFF1565C0), width: 1.5),
+                        minimumSize: const Size(0, 40),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Edit & Reorder',
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildQuickActions() {

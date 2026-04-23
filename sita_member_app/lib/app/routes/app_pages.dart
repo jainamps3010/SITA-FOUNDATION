@@ -25,6 +25,8 @@ import '../../modules/membership/membership_payment_binding.dart';
 import '../../modules/membership/membership_payment_view.dart';
 import '../../modules/feedback/feedback_binding.dart';
 import '../../modules/feedback/feedback_view.dart';
+import '../../modules/edit_reorder/edit_reorder_binding.dart';
+import '../../modules/edit_reorder/edit_reorder_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -98,6 +100,11 @@ class AppPages {
       name: Routes.feedback,
       page: () => const FeedbackView(),
       binding: FeedbackBinding(),
+    ),
+    GetPage(
+      name: Routes.editReorder,
+      page: () => const EditReorderView(),
+      binding: EditReorderBinding(),
     ),
   ];
 }

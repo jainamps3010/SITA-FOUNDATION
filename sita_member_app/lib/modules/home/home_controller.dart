@@ -3,19 +3,25 @@ import 'package:get/get.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/storage_service.dart';
 import '../../data/models/member_model.dart';
+import '../../data/models/order_model.dart';
+import '../../data/models/product_model.dart';
 import '../../app/routes/app_routes.dart';
+import '../cart/cart_controller.dart';
 
 class HomeController extends GetxController {
   final member = Rxn<Member>();
   final isLoading = false.obs;
   final isRenewing = false.obs;
   final currentIndex = 0.obs;
+  final lastOrder = Rxn<Order>();
+  final isLoadingLastOrder = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     _loadFromStorage();
     fetchProfile();
+    fetchLastOrder();
   }
 
   void _loadFromStorage() {
@@ -32,8 +38,96 @@ class HomeController extends GetxController {
     } catch (_) {}
   }
 
+  Future<void> fetchLastOrder() async {
+    isLoadingLastOrder.value = true;
+    try {
+      final res = await Get.find<ApiService>().get('/orders/last-order');
+      if (res['order'] != null) {
+        lastOrder.value =
+            Order.fromJson(res['order'] as Map<String, dynamic>);
+      } else {
+        lastOrder.value = null;
+      }
+    } catch (_) {
+      lastOrder.value = null;
+    } finally {
+      isLoadingLastOrder.value = false;
+    }
+  }
+
+  Future<void> refreshAll() =>
+      Future.wait([fetchProfile(), fetchLastOrder()]);
+
+  void repeatOrder() {
+    final order = lastOrder.value;
+    if (order == null) return;
+
+    final cart = Get.find<CartController>();
+    cart.clear();
+
+    int added = 0;
+    for (final item in order.items) {
+      if (!item.isUnavailable) {
+        cart.addItem(_productFrom(item, order), item.quantity);
+        added++;
+      }
+    }
+
+    if (added == 0) {
+      Get.snackbar(
+        'Nothing Available',
+        'All items from your last order are currently out of stock.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    Get.toNamed(Routes.cart);
+  }
+
+  void editAndReorder() {
+    final order = lastOrder.value;
+    if (order == null) return;
+
+    final cart = Get.find<CartController>();
+    cart.clear();
+
+    final unavailable = <OrderItem>[];
+    for (final item in order.items) {
+      if (!item.isUnavailable) {
+        cart.addItem(_productFrom(item, order), item.quantity);
+      } else {
+        unavailable.add(item);
+      }
+    }
+
+    Get.toNamed(Routes.editReorder,
+        arguments: {'unavailableItems': unavailable});
+  }
+
+  Product _productFrom(OrderItem item, Order order) {
+    final vendorId = item.vendorId ?? order.vendor?.id ?? '';
+    final vendor = Vendor(
+      id: vendorId,
+      companyName: order.vendor?.companyName ?? '',
+      phone: order.vendor?.phone,
+      email: order.vendor?.email,
+    );
+    return Product(
+      id: item.productId,
+      name: item.productName,
+      category: item.category ?? 'other',
+      pricePerUnit: item.currentPrice ?? item.unitPrice,
+      marketPrice: item.currentMarketPrice ?? item.marketPrice,
+      unit: item.productUnit,
+      moq: item.moq ?? 1,
+      available: true,
+      imageUrl: item.imageUrl,
+      vendor: vendor,
+    );
+  }
+
   Future<void> renewMembership(BuildContext context) async {
-    // Confirm before proceeding
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -68,7 +162,8 @@ class HomeController extends GetxController {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A237E)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A237E)),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Pay ₹5,000'),
           ),
@@ -80,7 +175,8 @@ class HomeController extends GetxController {
 
     isRenewing.value = true;
     try {
-      final res = await Get.find<ApiService>().post('/members/renew-membership', {});
+      final res =
+          await Get.find<ApiService>().post('/members/renew-membership', {});
       if (res['member'] != null) {
         final m = Member.fromJson(res['member'] as Map<String, dynamic>);
         member.value = m;
@@ -88,7 +184,8 @@ class HomeController extends GetxController {
       }
       Get.snackbar(
         'Membership Renewed',
-        res['message']?.toString() ?? 'Your membership is now active for another year.',
+        res['message']?.toString() ??
+            'Your membership is now active for another year.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade700,
         colorText: Colors.white,
