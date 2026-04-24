@@ -4,6 +4,8 @@ import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import MembershipPaymentPage from './pages/MembershipPaymentPage';
 import HomePage from './pages/HomePage';
 import MarketplacePage from './pages/MarketplacePage';
 import CartPage from './pages/CartPage';
@@ -21,6 +23,8 @@ export default function App() {
         <CartProvider>
           <Routes>
             <Route path="/" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/membership-payment" element={<ProtectedRoute><MembershipPaymentPage /></ProtectedRoute>} />
             <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
             <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
             <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />

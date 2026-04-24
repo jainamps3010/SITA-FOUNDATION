@@ -7,64 +7,89 @@ const steps = [
     num: '01',
     icon: '📝',
     title: 'Register as a Member',
-    desc: 'Visit the SITA website or download the app. Fill in your hotel/restaurant details — name, address, GSTIN, contact info. Registration takes less than 5 minutes.',
-    details: ['Hotel/Restaurant name & address', 'GSTIN & PAN details', 'Owner contact details', 'Type of establishment'],
+    desc: 'Visit the SITA website and fill in your hotel/restaurant details. Registration takes less than 5 minutes.',
+    details: [
+      'Hotel/Restaurant name & address',
+      'GSTIN & PAN details',
+      'Owner contact details',
+      'Type of establishment',
+    ],
     duration: '5 minutes',
   },
   {
     num: '02',
     icon: '✅',
     title: 'KYC Verification',
-    desc: 'Our team reviews your submitted documents to verify your identity and business legitimacy. This ensures only genuine hospitality businesses access SITA prices.',
-    details: ['GSTIN verification', 'Address proof upload', 'Business license (if applicable)', 'Photo ID of proprietor'],
-    duration: '24-48 hours',
+    desc: 'Our team reviews your submitted documents to verify your identity and business. Only genuine pure vegetarian Hindu hospitality establishments are approved.',
+    details: [
+      'GSTIN verification',
+      'FSSAI license verification',
+      'Address proof upload',
+      'Photo ID of proprietor',
+    ],
+    duration: '24–48 hours',
   },
   {
     num: '03',
-    icon: '🛍️',
-    title: 'Browse & Select Products',
-    desc: 'Once approved, access the full SITA product catalogue. Compare market prices vs SITA special prices. Filter by category, brand, packaging size, or price.',
-    details: ['800+ products across 6 categories', 'Side-by-side market vs SITA price', 'Vendor rating & reviews', 'Minimum order quantities shown'],
-    duration: 'Anytime',
+    icon: '💳',
+    title: 'Pay Annual Membership Fee',
+    desc: 'Pay the ₹5,000 annual membership fee via UPI, NEFT, or bank transfer. This fee is non-refundable and covers platform access for 1 year.',
+    details: [
+      'Fee: ₹5,000 per year',
+      'Non-refundable once paid',
+      'Valid for 1 year from activation',
+      'One outlet per membership',
+    ],
+    duration: 'Instant',
   },
   {
     num: '04',
-    icon: '📦',
-    title: 'Place Bulk Order',
-    desc: 'Add products to your cart and place your order. Choose your preferred delivery date. Pay securely via UPI, NEFT, or credit/debit card. Order confirmation received instantly.',
-    details: ['Minimum order ₹2,000', 'Multiple payment modes', 'Invoice generated automatically', 'Order tracking via app'],
-    duration: 'Under 10 minutes',
+    icon: '🛍️',
+    title: 'Access the Marketplace',
+    desc: 'Once activated, access the full SITA product catalogue. Browse by category, compare member prices, and view product details.',
+    details: [
+      'Products across 5 categories',
+      'Exclusive SITA member pricing',
+      'Verified vendor listings',
+      'Minimum order quantities shown',
+    ],
+    duration: 'Anytime',
   },
   {
     num: '05',
     icon: '🚚',
-    title: 'Direct Delivery',
-    desc: 'Your order is picked directly from the vendor and delivered to your premises. No third-party warehousing. Fresh products, verified quality, on-time delivery guaranteed.',
-    details: ['Delivery within 24-48 hours', 'Real-time tracking in app', 'Quality-checked at dispatch', 'Free delivery on orders ₹5,000+'],
-    duration: '24-48 hours',
+    title: 'Order & Receive Delivery',
+    desc: 'Place bulk orders and receive delivery directly at your premises. Products come straight from verified vendors — no warehousing middlemen.',
+    details: [
+      'Delivery within 24–48 hours',
+      'Real-time tracking in Android app',
+      'Quality-checked at dispatch',
+      'Direct vendor-to-kitchen delivery',
+    ],
+    duration: '24–48 hours',
   },
 ];
 
 const faqs = [
   {
     q: 'Who is eligible to join SITA Foundation?',
-    a: 'Any registered hotel, restaurant, dhaba, catering company, or food service business in India can join. You need a valid GSTIN to complete KYC.',
+    a: 'Only pure vegetarian Hindu establishments are eligible. Your establishment must have a valid GST registration and a valid FSSAI license to complete KYC verification.',
   },
   {
-    q: 'Is there a membership fee?',
-    a: 'Yes, there is a one-time non-refundable membership fee. Please visit our Membership page for current pricing. This fee covers KYC processing and platform access.',
+    q: 'What is the membership fee?',
+    a: 'The annual membership fee is ₹5,000. This fee is strictly non-refundable and covers platform access, KYC processing, and onboarding for 1 year.',
+  },
+  {
+    q: 'Can I cover multiple outlets under one membership?',
+    a: 'No. SITA membership covers only ONE outlet per membership. Each additional outlet requires a separate membership application and fee.',
   },
   {
     q: 'What is the minimum order quantity?',
-    a: 'The minimum order value is ₹2,000. Individual product minimums vary by category — for example, cooking oil is typically sold in 15L or 30L packs.',
+    a: 'Minimum order quantities vary by product and vendor. Individual product minimums are shown on each product listing in the member catalogue.',
   },
   {
     q: 'How is the delivery done?',
-    a: 'Products are delivered directly from verified vendors to your premises. Delivery is typically within 24-48 hours of order confirmation. For orders above ₹5,000, delivery is free.',
-  },
-  {
-    q: "Can I return products if I'm unhappy?",
-    a: "Yes. If a product is damaged or doesn't match the description, you can raise a return request within 24 hours of delivery. Our team will resolve it within 48 hours.",
+    a: 'Products are delivered directly from verified vendors to your premises. Delivery is typically within 24–48 hours of order confirmation.',
   },
 ];
 
@@ -123,7 +148,7 @@ export default function HowItWorks() {
           <div className="hiw-banner">
             <h2>From Registration to Delivery — All in One Place</h2>
             <div className="hiw-flow">
-              {['Register', 'KYC', 'Browse', 'Order', 'Delivery'].map((s, i) => (
+              {['Register', 'KYC', 'Pay Fee', 'Marketplace', 'Order'].map((s, i) => (
                 <React.Fragment key={s}>
                   <div className="flow-step">
                     <div className="flow-circle">{i + 1}</div>

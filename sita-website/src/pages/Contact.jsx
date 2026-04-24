@@ -5,15 +5,15 @@ const contactInfo = [
   {
     icon: '📍',
     title: 'Office Address',
-    lines: ['SITA Foundation Office', 'Near SG Highway, Ahmedabad', 'Gujarat - 380054, India'],
+    lines: ['SITA Foundation Office', 'Surat, Gujarat, India'],
   },
   {
     icon: '📞',
     title: 'Phone',
     lines: [
-      { text: '+91 7069924365', link: 'tel:+917069924365' },
-      { text: '+91 7069824365', link: 'tel:+917069824365' },
-      { text: 'WhatsApp: +91 7069924365', link: 'https://wa.me/917069924365' },
+      { text: '+91 70699 24365', link: 'tel:+917069924365' },
+      { text: '+91 70698 24365', link: 'tel:+917069824365' },
+      { text: 'WhatsApp: +91 70699 24365', link: 'https://wa.me/917069924365' },
     ],
   },
   {
@@ -186,7 +186,7 @@ export default function Contact() {
 
               <div className="vendor-cta">
                 <h4>Are You a Vendor?</h4>
-                <p>List your products on SITA and reach 500+ hotel buyers directly.</p>
+                <p>List your products on SITA and reach verified hotel buyers directly.</p>
                 <a href="mailto:chairman@sita.foundation" className="btn-secondary">
                   Partner With Us
                 </a>

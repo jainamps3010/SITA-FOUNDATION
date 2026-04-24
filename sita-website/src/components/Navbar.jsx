@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import logo from '../assets/logo.png';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -25,7 +24,7 @@ export default function Navbar() {
       <div className="container nav-inner">
         <Link to="/" className="nav-logo">
           <span style={{ display: 'inline-block', background: '#fff', borderRadius: 8, padding: 8, lineHeight: 0 }}>
-            <img src={logo} height="45" alt="SITA Foundation" className="nav-logo-img" />
+            <img src="/logo.png" alt="SITA Foundation" height="50" className="nav-logo-img" />
           </span>
           <div className="logo-text">
             <span className="logo-main">SITA Foundation</span>
@@ -43,7 +42,6 @@ export default function Navbar() {
           <Link to="/" className={isActive('/') ? 'active' : ''}>Home</Link>
           <Link to="/about" className={isActive('/about') ? 'active' : ''}>About</Link>
           <Link to="/how-it-works" className={isActive('/how-it-works') ? 'active' : ''}>How It Works</Link>
-          <Link to="/products" className={isActive('/products') ? 'active' : ''}>Products</Link>
           <Link to="/membership" className={isActive('/membership') ? 'active' : ''}>Membership</Link>
           <Link to="/contact" className={isActive('/contact') ? 'active' : ''}>Contact</Link>
           <a href="http://localhost:5001" className="nav-login-btn" target="_blank" rel="noreferrer">Login</a>

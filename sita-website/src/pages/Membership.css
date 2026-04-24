@@ -317,3 +317,118 @@
     font-size: 48px;
   }
 }
+
+/* Membership inquiry modal */
+.mem-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.mem-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 32px 28px;
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.mem-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #F3F4F6;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.mem-modal-close:hover { background: #E5E7EB; }
+
+.mem-modal-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.mem-modal-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.mem-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mem-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mem-modal-field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mem-modal-field input {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.mem-modal-field input:focus { border-color: var(--primary); }
+.mem-modal-field input.error { border-color: #E53935; }
+
+.mem-modal-field .err {
+  font-size: 12px;
+  color: #E53935;
+}
+
+.mem-modal-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.mem-modal-success-icon {
+  font-size: 52px;
+  margin-bottom: 16px;
+}
+
+.mem-modal-success h3 {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+}
+
+.mem-modal-success p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}

@@ -126,6 +126,41 @@
   margin-bottom: 12px;
 }
 
+.btnRegister {
+  background: none;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius);
+  width: 100%;
+  transition: background 0.2s;
+}
+.btnRegister:hover { background: #E8EAF6; }
+
+.rememberRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.rememberCheck {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+
+.rememberLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .infoBox {
   margin-top: 24px;
   background: #E8EAF6;

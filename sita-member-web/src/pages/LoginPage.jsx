@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const sendOtp = async () => {
     if (mobile.length !== 10 || !/^\d{10}$/.test(mobile)) {
@@ -27,7 +28,7 @@ export default function LoginPage() {
       const status = err.response?.status;
       const msg = err.response?.data?.message || 'Failed to send OTP';
       if (status === 404) {
-        toast('This number is not registered. Contact your account manager.', 'warning');
+        toast('This number is not registered. Register as a new member below.', 'warning');
       } else {
         toast(msg, 'error');
       }
@@ -44,10 +45,16 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await api.post('/auth/member/verify-otp', { phone: mobile, otp });
-      localStorage.setItem('member_token', res.data.token);
-      localStorage.setItem('member_data', JSON.stringify(res.data.member));
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('member_token', res.data.token);
+      storage.setItem('member_data', JSON.stringify(res.data.member));
       toast('Login successful!', 'success');
-      navigate('/home');
+      const member = res.data.member;
+      if (member.status === 'active' && !member.membership_paid) {
+        navigate('/membership-payment');
+      } else {
+        navigate('/home');
+      }
     } catch (err) {
       toast(err.response?.data?.message || 'Invalid OTP', 'error');
     } finally {
@@ -86,9 +93,20 @@ export default function LoginPage() {
         </div>
 
         {!otpSent ? (
-          <button className={styles.btnPrimary} onClick={sendOtp} disabled={loading}>
-            {loading ? 'Sending...' : 'Send OTP'}
-          </button>
+          <>
+            <label className={styles.rememberRow}>
+              <input
+                type="checkbox"
+                className={styles.rememberCheck}
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+              />
+              <span className={styles.rememberLabel}>Remember Me</span>
+            </label>
+            <button className={styles.btnPrimary} onClick={sendOtp} disabled={loading}>
+              {loading ? 'Sending...' : 'Send OTP'}
+            </button>
+          </>
         ) : (
           <>
             <div className={styles.field} style={{ marginTop: 16 }}>
@@ -114,6 +132,10 @@ export default function LoginPage() {
             </button>
           </>
         )}
+
+        <button className={styles.btnRegister} onClick={() => navigate('/register')}>
+          New Member? Register Here
+        </button>
 
         <div className={styles.infoBox}>
           <span className={styles.infoIcon}>ℹ️</span>

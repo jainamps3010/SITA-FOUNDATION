@@ -104,7 +104,39 @@ class LoginView extends GetView<LoginController> {
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 16),
+
+                    // Remember Me toggle
+                    Obx(() => GestureDetector(
+                          onTap: () => controller.rememberMe.toggle(),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: Checkbox(
+                                  value: controller.rememberMe.value,
+                                  onChanged: (v) => controller.rememberMe.value = v ?? true,
+                                  activeColor: AppColors.primary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                'Remember Me',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )),
+
+                    const SizedBox(height: 20),
 
                     // Send OTP button (saffron)
                     Obx(() => ElevatedButton(

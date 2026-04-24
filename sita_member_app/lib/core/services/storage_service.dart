@@ -10,15 +10,18 @@ class StorageService extends GetxService {
   static const _keyToken = 'auth_token';
   static const _keyMember = 'member_data';
 
-  /// Called lazily — never blocks app startup.
+  // Session-only storage (not persisted to SharedPreferences).
+  // Used when user logs in with "Remember Me" off.
+  String? _sessionToken;
+  Map<String, dynamic>? _sessionMember;
+
   Future<SharedPreferences> _getPrefs() async {
     _prefs ??= await SharedPreferences.getInstance();
     return _prefs!;
   }
 
-  /// Synchronous read — returns null if prefs not loaded yet.
-  /// Safe to call from splash without awaiting.
   bool get isLoggedIn {
+    if (_sessionToken != null) return true;
     try {
       return _prefs?.getString(_keyToken) != null;
     } catch (_) {
@@ -27,14 +30,11 @@ class StorageService extends GetxService {
   }
 
   String? get token {
-    try {
-      return _prefs?.getString(_keyToken);
-    } catch (_) {
-      return null;
-    }
+    return _sessionToken ?? _prefs?.getString(_keyToken);
   }
 
   Map<String, dynamic>? get member {
+    if (_sessionMember != null) return _sessionMember;
     try {
       final raw = _prefs?.getString(_keyMember);
       if (raw == null) return null;
@@ -44,23 +44,41 @@ class StorageService extends GetxService {
     }
   }
 
-  Future<void> saveToken(String token) async {
-    final p = await _getPrefs();
-    await p.setString(_keyToken, token);
+  /// [remember] = true persists to SharedPreferences (survives app restarts).
+  /// [remember] = false stores in memory only (clears when app is killed).
+  Future<void> saveToken(String token, {bool remember = true}) async {
+    if (remember) {
+      final p = await _getPrefs();
+      await p.setString(_keyToken, token);
+      _sessionToken = null;
+    } else {
+      _sessionToken = token;
+      // Remove any previously persisted token so a fresh launch goes to login.
+      final p = await _getPrefs();
+      await p.remove(_keyToken);
+    }
   }
 
-  Future<void> saveMember(Map<String, dynamic> data) async {
-    final p = await _getPrefs();
-    await p.setString(_keyMember, jsonEncode(data));
+  Future<void> saveMember(Map<String, dynamic> data, {bool remember = true}) async {
+    if (remember) {
+      final p = await _getPrefs();
+      await p.setString(_keyMember, jsonEncode(data));
+      _sessionMember = null;
+    } else {
+      _sessionMember = data;
+      final p = await _getPrefs();
+      await p.remove(_keyMember);
+    }
   }
 
   Future<void> clearAll() async {
+    _sessionToken = null;
+    _sessionMember = null;
     final p = await _getPrefs();
     await p.remove(_keyToken);
     await p.remove(_keyMember);
   }
 
-  /// Call this early in background to warm up the prefs cache.
   Future<void> warmUp() async {
     try {
       await _getPrefs();

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const baseUrl = 'http://10.0.2.2:3000/api/v1';
@@ -124,7 +125,7 @@ class SitaSurveyApp extends StatelessWidget {
           margin: EdgeInsets.zero,
         ),
       ),
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }
@@ -134,6 +135,37 @@ class Session {
   static String? token;
   static String? agentName;
   static String agentStatus = 'pending'; // 'pending', 'approved', 'blocked'
+
+  static const _kToken = 'survey_token';
+  static const _kName = 'survey_agent_name';
+  static const _kStatus = 'survey_agent_status';
+
+  static Future<void> persist() async {
+    final p = await SharedPreferences.getInstance();
+    if (token != null) await p.setString(_kToken, token!);
+    if (agentName != null) await p.setString(_kName, agentName!);
+    await p.setString(_kStatus, agentStatus);
+  }
+
+  static Future<bool> restore() async {
+    final p = await SharedPreferences.getInstance();
+    final t = p.getString(_kToken);
+    if (t == null) return false;
+    token = t;
+    agentName = p.getString(_kName);
+    agentStatus = p.getString(_kStatus) ?? 'approved';
+    return true;
+  }
+
+  static Future<void> clear() async {
+    token = null;
+    agentName = null;
+    agentStatus = 'pending';
+    final p = await SharedPreferences.getInstance();
+    await p.remove(_kToken);
+    await p.remove(_kName);
+    await p.remove(_kStatus);
+  }
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -271,6 +303,70 @@ class SurveyStepBar extends StatelessWidget {
             }),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Splash ────────────────────────────────────────────────────────────────
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final hasSession = await Session.restore();
+    if (!mounted) return;
+    Widget next;
+    if (hasSession) {
+      if (Session.agentStatus == 'blocked') {
+        next = const BlockedScreen();
+      } else if (Session.agentStatus == 'pending') {
+        next = const PendingApprovalScreen();
+      } else {
+        next = const HomeScreen();
+      }
+    } else {
+      next = const LoginScreen();
+    }
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => next));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kPrimary,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: ClipOval(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+          ],
+        ),
       ),
     );
   }
@@ -513,6 +609,8 @@ class _OtpScreenState extends State<OtpScreen> {
             body['data']?['agent']?['name'] ??
             'Agent';
         Session.agentStatus = body['agent_status'] ?? 'approved';
+        await Session.persist();
+        if (!mounted) return;
 
         Widget nextScreen;
         if (Session.agentStatus == 'blocked') {
@@ -683,10 +781,9 @@ class PendingApprovalScreen extends StatelessWidget {
               OutlinedButton.icon(
                 icon: const Icon(Icons.logout_rounded),
                 label: const Text('Back to Login'),
-                onPressed: () {
-                  Session.token = null;
-                  Session.agentName = null;
-                  Session.agentStatus = 'pending';
+                onPressed: () async {
+                  await Session.clear();
+                  if (!context.mounted) return;
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -768,10 +865,9 @@ class BlockedScreen extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.logout_rounded),
                 label: const Text('Back to Login'),
-                onPressed: () {
-                  Session.token = null;
-                  Session.agentName = null;
-                  Session.agentStatus = 'pending';
+                onPressed: () async {
+                  await Session.clear();
+                  if (!context.mounted) return;
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -817,10 +913,9 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Logout',
-            onPressed: () {
-              Session.token = null;
-              Session.agentName = null;
-              Session.agentStatus = 'pending';
+            onPressed: () async {
+              await Session.clear();
+              if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -1366,7 +1461,7 @@ class _NewSurveyScreenState extends State<NewSurveyScreen> {
                                   TextFormField(
                                     controller: _districtCtrl,
                                     decoration: const InputDecoration(
-                                        hintText: 'e.g. Ahmedabad'),
+                                        hintText: 'e.g. Surat'),
                                     validator: (v) =>
                                         v == null || v.trim().isEmpty
                                             ? 'Required'

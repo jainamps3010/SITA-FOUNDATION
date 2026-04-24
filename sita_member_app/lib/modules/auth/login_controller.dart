@@ -18,6 +18,7 @@ class LoginController extends GetxController {
 
   final isLoading = false.obs;
   final phone = ''.obs;
+  final rememberMe = true.obs;
   String? devOtp;
 
   Future<void> sendOtp() async {
@@ -73,8 +74,9 @@ class LoginController extends GetxController {
           .post('/auth/member/verify-otp', {'phone': phone.value, 'otp': otp});
       final token = res['token'] as String;
       final memberData = res['member'] as Map<String, dynamic>;
-      await StorageService.to.saveToken(token);
-      await StorageService.to.saveMember(memberData);
+      final remember = rememberMe.value;
+      await StorageService.to.saveToken(token, remember: remember);
+      await StorageService.to.saveMember(memberData, remember: remember);
       final member = Member.fromJson(memberData);
       // If KYC approved (active) but membership not paid, go to payment screen
       if (member.isActive && !member.membershipPaid) {

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import logo from '../assets/logo.png';
 import './Footer.css';
 
 export default function Footer() {
@@ -10,14 +9,14 @@ export default function Footer() {
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="footer-logo">
-              <img src={logo} height="44" alt="SITA Foundation" style={{ borderRadius: 8, objectFit: 'contain' }} />
+              <img src="/logo.png" alt="SITA Foundation" height="44" style={{ borderRadius: 8, objectFit: 'contain' }} />
               <div>
                 <div className="logo-main">SITA Foundation</div>
                 <div className="logo-sub">Business Terminal</div>
               </div>
             </div>
             <p className="footer-desc">
-              India's trusted B2B procurement platform for hoteliers. Connecting hospitality businesses with quality suppliers since 2023.
+              B2B procurement platform for pure vegetarian Hindu hospitality establishments in India. Connecting verified members with quality suppliers.
             </p>
             <div className="footer-badges">
               <span>Verified Vendors</span>
@@ -32,7 +31,6 @@ export default function Footer() {
               <li><Link to="/">Home</Link></li>
               <li><Link to="/about">About Us</Link></li>
               <li><Link to="/how-it-works">How It Works</Link></li>
-              <li><Link to="/products">Products</Link></li>
               <li><Link to="/membership">Membership</Link></li>
               <li><Link to="/contact">Contact</Link></li>
             </ul>
@@ -41,12 +39,11 @@ export default function Footer() {
           <div className="footer-links-col">
             <h4>Product Categories</h4>
             <ul>
-              <li><Link to="/products">Cooking Oils</Link></li>
-              <li><Link to="/products">Grains & Rice</Link></li>
-              <li><Link to="/products">Spices & Masalas</Link></li>
-              <li><Link to="/products">Gas & Fuel</Link></li>
-              <li><Link to="/products">Cleaning Supplies</Link></li>
-              <li><Link to="/products">Dairy Products</Link></li>
+              <li><Link to="/membership">Cooking Oils</Link></li>
+              <li><Link to="/membership">Grains & Rice</Link></li>
+              <li><Link to="/membership">Spices & Masalas</Link></li>
+              <li><Link to="/membership">Gas & Fuel</Link></li>
+              <li><Link to="/membership">Cleaning Supplies</Link></li>
             </ul>
           </div>
 
@@ -55,15 +52,19 @@ export default function Footer() {
             <ul className="footer-contact">
               <li>
                 <span className="icon">📍</span>
-                <span>SITA Foundation Office, Ahmedabad, Gujarat, India</span>
+                <span>SITA Foundation, Surat, Gujarat, India</span>
               </li>
               <li>
                 <span className="icon">📞</span>
-                <a href="tel:+919876543210">+91 98765 43210</a>
+                <a href="tel:+917069924365">+91 70699 24365</a>
+              </li>
+              <li>
+                <span className="icon">📞</span>
+                <a href="tel:+917069824365">+91 70698 24365</a>
               </li>
               <li>
                 <span className="icon">✉️</span>
-                <a href="mailto:info@sitafoundation.in">info@sitafoundation.in</a>
+                <a href="mailto:chairman@sita.foundation">chairman@sita.foundation</a>
               </li>
               <li>
                 <span className="icon">🕐</span>
