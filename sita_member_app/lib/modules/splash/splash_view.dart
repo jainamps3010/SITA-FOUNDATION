@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../app/routes/app_routes.dart';
+import '../../core/services/storage_service.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -29,8 +30,13 @@ class _SplashViewState extends State<SplashView>
     _scale = Tween<double>(begin: 0.85, end: 1.0)
         .animate(CurvedAnimation(parent: _anim, curve: Curves.easeOutBack));
 
-    _timer = Timer(const Duration(seconds: 2), () {
-      Get.offAllNamed(Routes.login);
+    _timer = Timer(const Duration(seconds: 2), () async {
+      await StorageService.to.warmUp();
+      if (StorageService.to.isLoggedIn) {
+        Get.offAllNamed(Routes.home);
+      } else {
+        Get.offAllNamed(Routes.login);
+      }
     });
   }
 

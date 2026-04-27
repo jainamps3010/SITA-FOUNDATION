@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { statusBadge, formatDate, formatCurrency, Pagination } from '../components/utils';
 
-const BACKEND_URL = 'http://localhost:3000';
+const BACKEND_URL = 'https://sita-backend-whn2.onrender.com';
 
 const CATEGORIES = {
   hotels_restaurants:  { label: 'Hotels & Restaurants',          color: '#1565C0', bg: '#E3F2FD' },

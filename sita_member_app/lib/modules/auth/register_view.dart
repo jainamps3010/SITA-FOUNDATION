@@ -150,6 +150,7 @@ class RegisterView extends GetView<RegisterController> {
                             keyboardType: TextInputType.number,
                             maxLength: 6,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            onChanged: controller.lookupPincode,
                             decoration: const InputDecoration(
                                 hintText: '6-digit pincode', counterText: ''),
                           ),
@@ -158,7 +159,7 @@ class RegisterView extends GetView<RegisterController> {
                     ),
                   ],
                 ),
-                _label('District (auto-filled from GPS)'),
+                _label('District (auto-filled from GPS / Pincode)'),
                 _field(controller.districtCtrl, 'District'),
               ],
             ),
@@ -313,8 +314,10 @@ class RegisterView extends GetView<RegisterController> {
                                 color: AppColors.success.withValues(alpha: 0.3)),
                           ),
                           child: Text(
-                            '📍 ${controller.latitude.value!.toStringAsFixed(5)}, '
-                            '${controller.longitude.value!.toStringAsFixed(5)}',
+                            controller.locationAddress.value.isNotEmpty
+                                ? '📍 ${controller.locationAddress.value}'
+                                : '📍 ${controller.latitude.value!.toStringAsFixed(5)}, '
+                                    '${controller.longitude.value!.toStringAsFixed(5)}',
                             style: const TextStyle(
                                 fontSize: 12.5, color: AppColors.success),
                           ),

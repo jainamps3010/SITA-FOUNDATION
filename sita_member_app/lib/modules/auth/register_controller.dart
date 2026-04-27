@@ -54,10 +54,11 @@ class RegisterController extends GetxController {
   final menuCardPhoto   = Rx<XFile?>(null);
 
   // ── GPS ─────────────────────────────────────────────────────────────────────
-  final latitude      = Rx<double?>(null);
-  final longitude     = Rx<double?>(null);
-  final locationStatus = ''.obs;
-  final isLocating    = false.obs;
+  final latitude       = Rx<double?>(null);
+  final longitude      = Rx<double?>(null);
+  final locationStatus  = ''.obs;
+  final locationAddress = ''.obs;
+  final isLocating     = false.obs;
 
   // ── State ───────────────────────────────────────────────────────────────────
   final isLoading = false.obs;
@@ -132,6 +133,7 @@ class RegisterController extends GetxController {
   // ── Detect GPS location ─────────────────────────────────────────────────────
   Future<void> detectLocation() async {
     isLocating.value = true;
+    locationAddress.value = '';
     locationStatus.value = 'Checking permissions…';
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -187,6 +189,31 @@ class RegisterController extends GetxController {
         if (districtCtrl.text.isEmpty && district.isNotEmpty) districtCtrl.text = district;
         if (cityCtrl.text.isEmpty && city.isNotEmpty)         cityCtrl.text = city;
         if (stateCtrl.text.isEmpty && state.isNotEmpty)        stateCtrl.text = state;
+
+        final parts = [city, district, state].where((s) => s.isNotEmpty).toList();
+        if (parts.isNotEmpty) locationAddress.value = parts.join(', ');
+      }
+    } catch (_) {}
+  }
+
+  // ── Pincode → city / state / district auto-fill ────────────────────────────
+  Future<void> lookupPincode(String value) async {
+    if (value.length != 6) return;
+    try {
+      final resp = await http
+          .get(Uri.parse('https://api.postalpincode.in/pincode/$value'))
+          .timeout(const Duration(seconds: 6));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as List<dynamic>;
+        if (data[0]['Status'] == 'Success') {
+          final po = data[0]['PostOffice'][0] as Map<String, dynamic>;
+          final district = po['District']?.toString() ?? '';
+          final state    = po['State']?.toString()    ?? '';
+          final city     = po['Block']?.toString()    ?? '';
+          if (district.isNotEmpty) districtCtrl.text = district;
+          if (state.isNotEmpty)    stateCtrl.text    = state;
+          if (city.isNotEmpty)     cityCtrl.text     = city;
+        }
       }
     } catch (_) {}
   }

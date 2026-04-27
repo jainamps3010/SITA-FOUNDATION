@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const baseUrl = 'http://10.0.2.2:3000/api/v1';
+const baseUrl = 'https://sita-backend-whn2.onrender.com/api/v1';
 
 // ─── Colors ────────────────────────────────────────────────────────────────
 const kPrimary = Color(0xFF1A237E);
@@ -2469,7 +2469,7 @@ class _MySurveysScreenState extends State<MySurveysScreen> {
                                           ? ClipRRect(
                                               borderRadius: BorderRadius.circular(12),
                                               child: Image.network(
-                                                'http://10.0.2.2:3000$photoUrl',
+                                                'https://sita-backend-whn2.onrender.com$photoUrl',
                                                 fit: BoxFit.cover,
                                                 errorBuilder: (_, __, ___) =>
                                                     const Icon(Icons.receipt_long_outlined, color: kPrimary, size: 28),
@@ -2604,7 +2604,7 @@ class SurveyDetailScreen extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      'http://10.0.2.2:3000$photoUrl',
+                      'https://sita-backend-whn2.onrender.com$photoUrl',
                       width: double.infinity,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(

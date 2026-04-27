@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: '/api/v1' });
+const api = axios.create({ baseURL: 'https://sita-backend-whn2.onrender.com/api/v1' });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('member_token') || sessionStorage.getItem('member_token');

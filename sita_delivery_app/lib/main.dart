@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
-const baseUrl = 'http://10.0.2.2:3000/api/v1';
+const baseUrl = 'https://sita-backend-whn2.onrender.com/api/v1';
 
 // ─── Colors ────────────────────────────────────────────────────────────────
 const kPrimary = Color(0xFF1A237E);
