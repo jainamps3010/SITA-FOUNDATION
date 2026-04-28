@@ -30,38 +30,6 @@ const faqs = [
 
 export default function Membership() {
   const [openFaq, setOpenFaq] = React.useState(null);
-  const [showModal, setShowModal] = React.useState(false);
-  const [inquiryForm, setInquiryForm] = React.useState({ name: '', mobile: '', business_name: '', city: '' });
-  const [inquirySubmitted, setInquirySubmitted] = React.useState(false);
-  const [inquiryErrors, setInquiryErrors] = React.useState({});
-
-  const validateInquiry = () => {
-    const e = {};
-    if (!inquiryForm.name.trim()) e.name = 'Name is required';
-    if (!/^[6-9]\d{9}$/.test(inquiryForm.mobile.replace(/\s/g, ''))) e.mobile = 'Enter a valid 10-digit mobile number';
-    if (!inquiryForm.business_name.trim()) e.business_name = 'Business name is required';
-    if (!inquiryForm.city.trim()) e.city = 'City is required';
-    return e;
-  };
-
-  const handleInquirySubmit = (e) => {
-    e.preventDefault();
-    const errs = validateInquiry();
-    if (Object.keys(errs).length > 0) { setInquiryErrors(errs); return; }
-    setInquirySubmitted(true);
-  };
-
-  const handleInquiryChange = (field, value) => {
-    setInquiryForm(f => ({ ...f, [field]: value }));
-    if (inquiryErrors[field]) setInquiryErrors(e => { const n = { ...e }; delete n[field]; return n; });
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setInquirySubmitted(false);
-    setInquiryForm({ name: '', mobile: '', business_name: '', city: '' });
-    setInquiryErrors({});
-  };
 
   return (
     <div>
@@ -122,9 +90,9 @@ export default function Membership() {
                 <li>✓ Early access to new products</li>
                 <li>✓ Annual vendor rate contracts</li>
               </ul>
-              <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setShowModal(true)}>
+              <a href="http://localhost:3002/register" target="_blank" rel="noreferrer" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
                 Apply for Membership
-              </button>
+              </a>
             </div>
 
             <div className="fee-info">
@@ -194,59 +162,13 @@ export default function Membership() {
             <h2>Ready to Get Started?</h2>
             <p>Apply today and start accessing wholesale prices within 48 hours of KYC approval.</p>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button className="btn-primary" style={{ cursor: 'pointer' }} onClick={() => setShowModal(true)}>Apply Now</button>
+              <a href="http://localhost:3002/register" target="_blank" rel="noreferrer" className="btn-primary">Apply Now</a>
               <Link to="/how-it-works" className="btn-secondary">Learn How It Works</Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Membership Inquiry Modal */}
-      {showModal && (
-        <div className="mem-modal-overlay" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
-          <div className="mem-modal">
-            <button className="mem-modal-close" onClick={closeModal}>✕</button>
-            {inquirySubmitted ? (
-              <div className="mem-modal-success">
-                <div className="mem-modal-success-icon">✅</div>
-                <h3>Thank You!</h3>
-                <p>Our team will contact you within 24 hours to guide you through the membership process.</p>
-                <button className="btn-primary" style={{ marginTop: 16, cursor: 'pointer' }} onClick={closeModal}>Close</button>
-              </div>
-            ) : (
-              <>
-                <h3 className="mem-modal-title">Apply for Membership</h3>
-                <p className="mem-modal-sub">Fill in your details and our team will reach out within 24 hours.</p>
-                <form onSubmit={handleInquirySubmit} className="mem-modal-form" noValidate>
-                  <div className="mem-modal-field">
-                    <label>Full Name *</label>
-                    <input type="text" placeholder="Your full name" value={inquiryForm.name} onChange={e => handleInquiryChange('name', e.target.value)} className={inquiryErrors.name ? 'error' : ''} />
-                    {inquiryErrors.name && <span className="err">{inquiryErrors.name}</span>}
-                  </div>
-                  <div className="mem-modal-field">
-                    <label>Mobile Number *</label>
-                    <input type="tel" placeholder="10-digit mobile number" value={inquiryForm.mobile} onChange={e => handleInquiryChange('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))} className={inquiryErrors.mobile ? 'error' : ''} maxLength={10} />
-                    {inquiryErrors.mobile && <span className="err">{inquiryErrors.mobile}</span>}
-                  </div>
-                  <div className="mem-modal-field">
-                    <label>Business Name *</label>
-                    <input type="text" placeholder="Hotel / Restaurant name" value={inquiryForm.business_name} onChange={e => handleInquiryChange('business_name', e.target.value)} className={inquiryErrors.business_name ? 'error' : ''} />
-                    {inquiryErrors.business_name && <span className="err">{inquiryErrors.business_name}</span>}
-                  </div>
-                  <div className="mem-modal-field">
-                    <label>City *</label>
-                    <input type="text" placeholder="Your city" value={inquiryForm.city} onChange={e => handleInquiryChange('city', e.target.value)} className={inquiryErrors.city ? 'error' : ''} />
-                    {inquiryErrors.city && <span className="err">{inquiryErrors.city}</span>}
-                  </div>
-                  <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 8, cursor: 'pointer' }}>
-                    Submit Inquiry →
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
