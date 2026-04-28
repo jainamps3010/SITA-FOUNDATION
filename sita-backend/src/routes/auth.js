@@ -64,7 +64,12 @@ router.post('/send-otp', async (req, res) => {
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
   driverOtpStore.set(mobile, { otp, expiresAt, attempts: 0, sentAt: Date.now() });
-  console.log(`\n[DEV OTP] ${mobile}: ${otp}\n`);
+
+  await twilioClient.messages.create({
+    body: `Your SITA Foundation OTP is: ${otp}`,
+    from: process.env.TWILIO_PHONE_NUMBER,
+    to: '+91' + mobile,
+  });
 
   res.json({ success: true, message: 'OTP sent' });
 });
