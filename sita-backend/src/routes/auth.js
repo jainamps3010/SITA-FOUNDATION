@@ -1,11 +1,13 @@
 'use strict';
 
+const fs = require('fs');
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const { Member, Admin, SurveyAgent } = require('../models');
 const { generateOTP } = require('../utils/helpers');
 const { createSecureUpload } = require('../middleware/uploadSecurity');
+const { uploadFile } = require('../services/supabaseStorage');
 
 // ─── Twilio client ────────────────────────────────────────────────────────────
 const { client: twilioClient, phoneNumber: TWILIO_FROM } = require('../config/twilio');
@@ -280,10 +282,30 @@ router.post('/register', kycFields, async (req, res, next) => {
     if (existing)
       return res.status(409).json({ success: false, message: 'This mobile number is already registered' });
 
-    const fileUrl = (fieldName) => {
+    const uploadKycFile = async (fieldName) => {
       const f = req.files?.[fieldName]?.[0];
-      return f ? `/uploads/kyc/${f.filename}` : null;
+      if (!f) return null;
+      const buffer = fs.readFileSync(f.path);
+      const url = await uploadFile(buffer, f.originalname, 'kyc');
+      fs.unlinkSync(f.path);
+      return url;
     };
+
+    const [
+      business_reg_certificate_url,
+      fssai_license_url,
+      establishment_front_photo_url,
+      billing_counter_photo_url,
+      kitchen_photo_url,
+      menu_card_photo_url,
+    ] = await Promise.all([
+      uploadKycFile('business_reg_certificate'),
+      uploadKycFile('fssai_license'),
+      uploadKycFile('establishment_front_photo'),
+      uploadKycFile('billing_counter_photo'),
+      uploadKycFile('kitchen_photo'),
+      uploadKycFile('menu_card_photo'),
+    ]);
 
     const lat = req.body.latitude  ? parseFloat(req.body.latitude)  : null;
     const lng = req.body.longitude ? parseFloat(req.body.longitude) : null;
@@ -301,12 +323,12 @@ router.post('/register', kycFields, async (req, res, next) => {
       gstin:                           (req.body.gst_number || req.body.gstin || '').trim() || null,
       gst_number:                      (req.body.gst_number || req.body.gstin || '').trim() || null,
       category:                        req.body.category || null,
-      business_reg_certificate_url:    fileUrl('business_reg_certificate'),
-      fssai_license_url:               fileUrl('fssai_license'),
-      establishment_front_photo_url:   fileUrl('establishment_front_photo'),
-      billing_counter_photo_url:       fileUrl('billing_counter_photo'),
-      kitchen_photo_url:               fileUrl('kitchen_photo'),
-      menu_card_photo_url:             fileUrl('menu_card_photo'),
+      business_reg_certificate_url,
+      fssai_license_url,
+      establishment_front_photo_url,
+      billing_counter_photo_url,
+      kitchen_photo_url,
+      menu_card_photo_url,
       latitude:                        lat,
       longitude:                       lng,
       geo_timestamp:                   lat ? new Date() : null,
