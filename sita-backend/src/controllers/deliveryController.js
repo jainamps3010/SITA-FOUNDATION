@@ -1,6 +1,8 @@
 'use strict';
 
+const fs = require('fs');
 const { Order, OrderItem, Member, Dispute } = require('../models');
+const { uploadFile } = require('../services/supabaseStorage');
 
 // GET /api/v1/delivery/orders
 // Returns all orders with status "dispatched"
@@ -188,4 +190,18 @@ const cancelDelivery = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getOrders, confirmDelivery, reportDefect, cancelDelivery };
+// POST /api/v1/delivery/upload-photo
+const uploadDeliveryPhoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Photo is required' });
+    }
+    const buffer = fs.readFileSync(req.file.path);
+    const photoUrl = await uploadFile(buffer, req.file.originalname, req.file.mimetype, 'delivery');
+    fs.unlinkSync(req.file.path);
+
+    res.json({ success: true, photo_url: photoUrl });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getOrders, confirmDelivery, reportDefect, cancelDelivery, uploadDeliveryPhoto };

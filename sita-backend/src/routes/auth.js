@@ -286,7 +286,7 @@ router.post('/register', kycFields, async (req, res, next) => {
       const f = req.files?.[fieldName]?.[0];
       if (!f) return null;
       const buffer = fs.readFileSync(f.path);
-      const url = await uploadFile(buffer, f.originalname, 'kyc');
+      const url = await uploadFile(buffer, f.originalname, f.mimetype, 'kyc');
       fs.unlinkSync(f.path);
       return url;
     };

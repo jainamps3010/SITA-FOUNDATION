@@ -7,12 +7,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-async function uploadFile(fileBuffer, fileName, folder) {
-  const filePath = `${folder}/${Date.now()}_${fileName}`;
+async function uploadFile(fileBuffer, fileName, mimeType, folder) {
+  const filePath = folder + '/' + Date.now() + '_' + fileName;
   const { data, error } = await supabase.storage
     .from('sita-documents')
     .upload(filePath, fileBuffer, {
-      contentType: 'auto',
+      contentType: mimeType,
       upsert: false
     });
 

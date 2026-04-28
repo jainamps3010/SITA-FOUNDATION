@@ -1,6 +1,8 @@
 'use strict';
 
+const fs = require('fs');
 const { SurveyEntity, ConsumptionSurvey, SurveyAgent } = require('../models');
+const { uploadFile } = require('../services/supabaseStorage');
 
 // POST /api/v1/survey/entity
 const createEntity = async (req, res, next) => {
@@ -67,7 +69,10 @@ const scanInvoice = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Invoice image is required' });
     }
-    const invoicePhotoUrl = `/uploads/invoices/${req.file.filename}`;
+    const buffer = fs.readFileSync(req.file.path);
+    const invoicePhotoUrl = await uploadFile(buffer, req.file.originalname, req.file.mimetype, 'invoices');
+    fs.unlinkSync(req.file.path);
+
     // Dummy OCR data — replace with Google Vision API when ready
     res.json({
       success: true,
