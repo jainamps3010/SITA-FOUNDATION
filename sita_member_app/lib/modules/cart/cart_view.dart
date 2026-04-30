@@ -21,6 +21,32 @@ class CartView extends GetView<CartController> {
         }
         return Column(
           children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3CD),
+                border: const Border(
+                  bottom: BorderSide(color: Color(0xFFFF8F00)),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Text('⚠️', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Ordering is currently in demo mode. Please check back soon.',
+                      style: TextStyle(
+                        color: Color(0xFF856404),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(16),
@@ -171,7 +197,7 @@ class CartView extends GetView<CartController> {
                 ],
               ),
             ),
-            // Place Order button
+            // Place Order button (disabled in demo mode)
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
               decoration: const BoxDecoration(
@@ -179,16 +205,24 @@ class CartView extends GetView<CartController> {
                 border:
                     Border(top: BorderSide(color: AppColors.divider)),
               ),
-              child: Obx(() => ElevatedButton(
-                    onPressed: controller.isLoading.value ? null : controller.placeOrder,
-                    child: controller.isLoading.value
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2))
-                        : Text(
-                            'Place Order  •  ₹${controller.total.toStringAsFixed(2)}'),
+              child: Obx(() => Opacity(
+                    opacity: 0.5,
+                    child: ElevatedButton(
+                      onPressed: null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade400,
+                        disabledBackgroundColor: Colors.grey.shade400,
+                        disabledForegroundColor: Colors.white,
+                      ),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : Text(
+                              'Coming Soon  •  ₹${controller.total.toStringAsFixed(2)}'),
+                    ),
                   )),
             ),
           ],

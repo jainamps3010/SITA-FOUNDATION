@@ -72,6 +72,11 @@ export default function CartPage() {
         </div>
       ) : (
         <div className={styles.content}>
+          {/* Demo Mode Notice */}
+          <div className={styles.demoNotice}>
+            <span>⚠️</span>
+            <span>Ordering is currently in demo mode. Please check back soon.</span>
+          </div>
           <div className={styles.scrollArea}>
             {/* Items */}
             {items.map((item) => (
@@ -159,8 +164,8 @@ export default function CartPage() {
 
           {/* Place Order */}
           <div className={styles.footer}>
-            <button className={styles.placeBtn} onClick={placeOrder} disabled={loading}>
-              {loading ? 'Placing Order...' : `Place Order  •  ₹${total.toFixed(2)}`}
+            <button className={styles.placeBtn} disabled>
+              Coming Soon  •  ₹{total.toFixed(2)}
             </button>
           </div>
         </div>

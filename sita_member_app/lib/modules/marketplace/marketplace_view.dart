@@ -54,6 +54,7 @@ class MarketplaceView extends GetView<MarketplaceController> {
       ),
       body: Column(
         children: [
+          _buildDemoBanner(),
           _buildMembershipBanner(),
           _buildSearch(),
           _buildCategories(),
@@ -62,6 +63,31 @@ class MarketplaceView extends GetView<MarketplaceController> {
       ),
     );
   }
+
+  Widget _buildDemoBanner() => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF3CD),
+          border: Border.all(color: const Color(0xFFFF8F00)),
+        ),
+        child: const Row(
+          children: [
+            Text('⚠️', style: TextStyle(fontSize: 16)),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Demo Mode - Products shown are for demonstration only. Ordering not available yet.',
+                style: TextStyle(
+                  color: Color(0xFF856404),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildMembershipBanner() {
     final homeCtrl = Get.isRegistered<HomeController>()
@@ -171,7 +197,7 @@ class MarketplaceView extends GetView<MarketplaceController> {
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.72,
+              childAspectRatio: 0.65,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -284,6 +310,41 @@ class _ProductCard extends StatelessWidget {
                       'Min: ${product.moq} ${product.unit}',
                       style: const TextStyle(
                           color: AppColors.textSecondary, fontSize: 10),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => Get.snackbar(
+                        '',
+                        'Ordering will be available soon. Stay tuned!',
+                        titleText: const SizedBox.shrink(),
+                        backgroundColor: const Color(0xFF333333),
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.BOTTOM,
+                        margin: const EdgeInsets.all(16),
+                        borderRadius: 10,
+                        duration: const Duration(seconds: 3),
+                      ),
+                      child: Opacity(
+                        opacity: 0.5,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade400,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Coming Soon',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

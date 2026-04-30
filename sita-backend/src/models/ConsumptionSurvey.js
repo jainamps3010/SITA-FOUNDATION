@@ -48,6 +48,11 @@ module.exports = (sequelize) => {
     invoice_photo_url: {
       type: DataTypes.STRING(500),
       allowNull: true
+    },
+    invoice_photos_urls: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: null
     }
   }, {
     tableName: 'consumption_surveys',

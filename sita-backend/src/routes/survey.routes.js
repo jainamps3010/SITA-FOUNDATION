@@ -6,7 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { createEntity, getEntities, submitConsumption, scanInvoice } = require('../controllers/surveyController');
+const { createEntity, getEntities, submitConsumption, scanInvoice, uploadInvoicePhotos } = require('../controllers/surveyController');
 
 // ─── Multer: Invoice photo uploads ────────────────────────────────────────────
 const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png']);
@@ -27,6 +27,17 @@ const invoiceStorage = multer.diskStorage({
 const invoiceUpload = multer({
   storage: invoiceStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_IMAGE_MIMES.has(file.mimetype)) {
+      return cb(new Error('Only JPG, JPEG and PNG images are allowed'));
+    }
+    cb(null, true);
+  },
+});
+
+const billPhotosUpload = multer({
+  storage: invoiceStorage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 10 },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_IMAGE_MIMES.has(file.mimetype)) {
       return cb(new Error('Only JPG, JPEG and PNG images are allowed'));
@@ -62,7 +73,8 @@ router.get('/my-surveys', authenticateAgent, async (req, res, next) => {
         model: ConsumptionSurvey,
         as: 'consumption_data',
         attributes: ['id', 'product_name', 'brand', 'category', 'monthly_quantity',
-                     'annual_quantity', 'unit', 'price_per_unit', 'invoice_photo_url', 'created_at']
+                     'annual_quantity', 'unit', 'price_per_unit', 'invoice_photo_url',
+                     'invoice_photos_urls', 'created_at']
       }],
       order: [['created_at', 'DESC']]
     });
@@ -70,6 +82,8 @@ router.get('/my-surveys', authenticateAgent, async (req, res, next) => {
     const data = entities.map(e => {
       const products = e.consumption_data || [];
       const photoUrl = products.find(p => p.invoice_photo_url)?.invoice_photo_url || null;
+      const allPhotos = products.flatMap(p => p.invoice_photos_urls || []);
+      const uniquePhotos = [...new Set(allPhotos)];
       return {
         id: e.id,
         entity_name: e.entity_name,
@@ -81,6 +95,7 @@ router.get('/my-surveys', authenticateAgent, async (req, res, next) => {
         survey_date: e.created_at,
         products_count: products.length,
         invoice_photo_url: photoUrl,
+        invoice_photos_urls: uniquePhotos.length > 0 ? uniquePhotos : null,
         products
       };
     });
@@ -104,6 +119,7 @@ router.get('/dummy-invoice', authenticateAgent, (req, res) => {
 });
 
 router.post('/scan-invoice', authenticateAgent, invoiceUpload.single('invoice'), scanInvoice);
+router.post('/upload-invoice-photos', authenticateAgent, billPhotosUpload.array('photos', 10), uploadInvoicePhotos);
 router.post('/entity', authenticateAgent, createEntity);
 router.get('/entities', authenticateAgent, getEntities);
 router.post('/consumption', authenticateAgent, submitConsumption);

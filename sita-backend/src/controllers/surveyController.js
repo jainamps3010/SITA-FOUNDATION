@@ -91,10 +91,29 @@ const scanInvoice = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// POST /api/v1/survey/upload-invoice-photos
+const uploadInvoicePhotos = async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'At least one photo is required' });
+    }
+
+    const urls = [];
+    for (const file of req.files) {
+      const buffer = fs.readFileSync(file.path);
+      const url = await uploadFile(buffer, file.originalname, file.mimetype, 'invoices');
+      fs.unlinkSync(file.path);
+      urls.push(url);
+    }
+
+    res.json({ success: true, invoice_photos_urls: urls });
+  } catch (err) { next(err); }
+};
+
 // POST /api/v1/survey/consumption
 const submitConsumption = async (req, res, next) => {
   try {
-    const { entity_id, products, invoice_photo_url } = req.body;
+    const { entity_id, products, invoice_photo_url, invoice_photos_urls } = req.body;
 
     if (!entity_id) {
       return res.status(400).json({ success: false, message: 'entity_id is required' });
@@ -126,9 +145,14 @@ const submitConsumption = async (req, res, next) => {
       }
     }
 
+    const photoUrls = Array.isArray(invoice_photos_urls) && invoice_photos_urls.length > 0
+      ? invoice_photos_urls
+      : null;
+
     const rows = products.map((p) => ({
       entity_id,
       invoice_photo_url: invoice_photo_url || null,
+      invoice_photos_urls: photoUrls,
       product_name: p.product_name,
       brand: p.brand || null,
       category: p.category,
@@ -154,4 +178,4 @@ const submitConsumption = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { createEntity, getEntities, submitConsumption, scanInvoice };
+module.exports = { createEntity, getEntities, submitConsumption, scanInvoice, uploadInvoicePhotos };

@@ -286,10 +286,32 @@ class ProductDetailView extends GetView<ProductDetailController> {
                           ),
                         )),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: controller.addToCart,
-                      icon: const Icon(Icons.add_shopping_cart),
-                      label: const Text('Add to Cart'),
+                    GestureDetector(
+                      onTap: () => Get.snackbar(
+                        '',
+                        'Ordering will be available soon. Stay tuned!',
+                        titleText: const SizedBox.shrink(),
+                        backgroundColor: const Color(0xFF333333),
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.BOTTOM,
+                        margin: const EdgeInsets.all(16),
+                        borderRadius: 10,
+                        duration: const Duration(seconds: 3),
+                      ),
+                      child: Opacity(
+                        opacity: 0.5,
+                        child: ElevatedButton.icon(
+                          onPressed: null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade400,
+                            disabledBackgroundColor: Colors.grey.shade400,
+                            disabledForegroundColor: Colors.white,
+                          ),
+                          icon: const Icon(Icons.access_time, color: Colors.white),
+                          label: const Text('Coming Soon',
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton(

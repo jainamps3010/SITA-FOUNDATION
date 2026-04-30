@@ -1050,7 +1050,7 @@ router.get('/survey-photos', async (req, res, next) => {
       include: [{
         model: ConsumptionSurvey,
         as: 'consumption_data',
-        attributes: ['id', 'product_name', 'invoice_photo_url', 'created_at'],
+        attributes: ['id', 'product_name', 'invoice_photo_url', 'invoice_photos_urls', 'created_at'],
         required: false
       }],
       order: [['created_at', 'DESC']],
@@ -1062,6 +1062,8 @@ router.get('/survey-photos', async (req, res, next) => {
     const data = rows.map(entity => {
       const items = entity.consumption_data || [];
       const photoUrl = items.find(i => i.invoice_photo_url)?.invoice_photo_url || null;
+      const allPhotos = items.flatMap(i => i.invoice_photos_urls || []);
+      const uniquePhotos = [...new Set(allPhotos)];
       return {
         id: entity.id,
         entity_name: entity.entity_name,
@@ -1072,7 +1074,8 @@ router.get('/survey-photos', async (req, res, next) => {
         agent_id: entity.agent_id,
         survey_date: entity.created_at,
         products_count: items.length,
-        invoice_photo_url: photoUrl
+        invoice_photo_url: photoUrl,
+        invoice_photos_urls: uniquePhotos.length > 0 ? uniquePhotos : null
       };
     });
 
@@ -1097,7 +1100,7 @@ router.delete('/survey-photos/bulk', async (req, res, next) => {
     if (!Array.isArray(ids) || ids.length === 0)
       return res.status(400).json({ success: false, message: 'ids array required' });
     const [count] = await ConsumptionSurvey.update(
-      { invoice_photo_url: null },
+      { invoice_photo_url: null, invoice_photos_urls: null },
       { where: { entity_id: { [Op.in]: ids } } }
     );
     console.log('[DELETE /survey-photos/bulk] updated rows:', count);
@@ -1113,8 +1116,11 @@ router.delete('/survey-photos/delete-all', async (req, res, next) => {
   try {
     console.log('[DELETE /survey-photos/delete-all] called');
     const [count] = await ConsumptionSurvey.update(
-      { invoice_photo_url: null },
-      { where: { invoice_photo_url: { [Op.ne]: null } } }
+      { invoice_photo_url: null, invoice_photos_urls: null },
+      { where: { [Op.or]: [
+        { invoice_photo_url: { [Op.ne]: null } },
+        { invoice_photos_urls: { [Op.ne]: null } }
+      ] } }
     );
     console.log('[DELETE /survey-photos/delete-all] updated rows:', count);
     res.json({ success: true, deleted: count });
@@ -1129,7 +1135,7 @@ router.delete('/survey-photos/:id', async (req, res, next) => {
   try {
     console.log('[DELETE /survey-photos/:id] id:', req.params.id);
     const [count] = await ConsumptionSurvey.update(
-      { invoice_photo_url: null },
+      { invoice_photo_url: null, invoice_photos_urls: null },
       { where: { entity_id: req.params.id } }
     );
     console.log('[DELETE /survey-photos/:id] updated rows:', count);

@@ -58,7 +58,7 @@ export default function SurveyPhotosPage() {
     try {
       await api.delete(`/admin/survey-photos/${confirmDelete.id}`);
       setSurveys(prev => prev.map(s =>
-        s.id === confirmDelete.id ? { ...s, invoice_photo_url: null } : s
+        s.id === confirmDelete.id ? { ...s, invoice_photo_url: null, invoice_photos_urls: null } : s
       ));
       setSelectedIds(prev => { const n = new Set(prev); n.delete(confirmDelete.id); return n; });
       setConfirmDelete(null);
@@ -77,7 +77,7 @@ export default function SurveyPhotosPage() {
     try {
       await api.delete('/admin/survey-photos/bulk', { data: { ids } });
       setSurveys(prev => prev.map(s =>
-        ids.includes(s.id) ? { ...s, invoice_photo_url: null } : s
+        ids.includes(s.id) ? { ...s, invoice_photo_url: null, invoice_photos_urls: null } : s
       ));
       setSelectedIds(new Set());
       setConfirmDelete(null);
@@ -87,6 +87,16 @@ export default function SurveyPhotosPage() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const getPhotos = (s) => {
+    const photos = [];
+    if (s.invoice_photos_urls && s.invoice_photos_urls.length > 0) {
+      photos.push(...s.invoice_photos_urls);
+    } else if (s.invoice_photo_url) {
+      photos.push(s.invoice_photo_url);
+    }
+    return photos;
   };
 
   return (
@@ -162,18 +172,50 @@ export default function SurveyPhotosPage() {
           }}
           onClick={() => setLightbox(null)}
         >
-          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
             <img
               src={lightbox.url}
               alt="Invoice"
-              style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: 8, objectFit: 'contain' }}
+              style={{ maxWidth: '90vw', maxHeight: '82vh', borderRadius: 8, objectFit: 'contain', display: 'block' }}
             />
-            <div style={{
-              position: 'absolute', bottom: -40, left: 0, right: 0,
-              textAlign: 'center', color: 'rgba(255,255,255,0.8)', fontSize: 13
-            }}>
-              {lightbox.entity} — {lightbox.date}
-            </div>
+            {lightbox.total > 1 && (
+              <div style={{
+                position: 'absolute', bottom: -36, left: 0, right: 0,
+                textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12
+              }}>
+                Photo {lightbox.index + 1} of {lightbox.total} — {lightbox.entity}
+              </div>
+            )}
+            {lightbox.total === 1 && (
+              <div style={{
+                position: 'absolute', bottom: -36, left: 0, right: 0,
+                textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 12
+              }}>
+                {lightbox.entity} — {lightbox.date}
+              </div>
+            )}
+            {lightbox.total > 1 && lightbox.index > 0 && (
+              <button
+                onClick={() => setLightbox(lb => ({ ...lb, url: lb.photos[lb.index - 1], index: lb.index - 1 }))}
+                style={{
+                  position: 'absolute', left: -44, top: '50%', transform: 'translateY(-50%)',
+                  width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.15)',
+                  border: 'none', color: 'white', cursor: 'pointer', fontSize: 20, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center'
+                }}
+              >‹</button>
+            )}
+            {lightbox.total > 1 && lightbox.index < lightbox.total - 1 && (
+              <button
+                onClick={() => setLightbox(lb => ({ ...lb, url: lb.photos[lb.index + 1], index: lb.index + 1 }))}
+                style={{
+                  position: 'absolute', right: -44, top: '50%', transform: 'translateY(-50%)',
+                  width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.15)',
+                  border: 'none', color: 'white', cursor: 'pointer', fontSize: 20, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center'
+                }}
+              >›</button>
+            )}
             <button
               onClick={() => setLightbox(null)}
               style={{
@@ -238,7 +280,9 @@ export default function SurveyPhotosPage() {
             }}>
               {surveys.map(s => {
                 const checked = selectedIds.has(s.id);
-                const hasPhoto = !!s.invoice_photo_url;
+                const photos = getPhotos(s);
+                const hasPhotos = photos.length > 0;
+                const primaryPhoto = photos[0] || null;
                 return (
                   <div
                     key={s.id}
@@ -255,13 +299,17 @@ export default function SurveyPhotosPage() {
                       flexDirection: 'column'
                     }}
                   >
-                    {/* Photo area with overlaid checkbox */}
+                    {/* Primary photo area with overlaid checkbox */}
                     <div style={{ position: 'relative', width: '100%', paddingTop: '75%' }}>
-                      {hasPhoto ? (
+                      {hasPhotos ? (
                         <img
-                          src={s.invoice_photo_url}
+                          src={primaryPhoto}
                           alt="Invoice"
-                          onClick={() => setLightbox({ url: s.invoice_photo_url, entity: s.entity_name, date: formatDate(s.survey_date) })}
+                          onClick={() => setLightbox({
+                            url: primaryPhoto, photos,
+                            index: 0, total: photos.length,
+                            entity: s.entity_name, date: formatDate(s.survey_date)
+                          })}
                           style={{
                             position: 'absolute', inset: 0,
                             width: '100%', height: '100%',
@@ -285,7 +333,19 @@ export default function SurveyPhotosPage() {
                         </div>
                       )}
 
-                      {/* Checkbox — top right corner, always visible */}
+                      {/* Photo count badge */}
+                      {photos.length > 1 && (
+                        <div style={{
+                          position: 'absolute', bottom: 8, left: 8,
+                          background: 'rgba(0,0,0,0.6)', color: 'white',
+                          borderRadius: 10, padding: '2px 8px',
+                          fontSize: 11, fontWeight: 600
+                        }}>
+                          {photos.length} photos
+                        </div>
+                      )}
+
+                      {/* Checkbox — top right corner */}
                       <div
                         onClick={() => toggleOne(s.id)}
                         style={{
@@ -306,6 +366,29 @@ export default function SurveyPhotosPage() {
                       </div>
                     </div>
 
+                    {/* Thumbnail strip for multiple photos */}
+                    {photos.length > 1 && (
+                      <div style={{ display: 'flex', gap: 4, padding: '6px 8px 0', overflowX: 'auto' }}>
+                        {photos.map((url, idx) => (
+                          <img
+                            key={idx}
+                            src={url}
+                            alt={`Photo ${idx + 1}`}
+                            onClick={() => setLightbox({
+                              url, photos, index: idx,
+                              total: photos.length,
+                              entity: s.entity_name, date: formatDate(s.survey_date)
+                            })}
+                            style={{
+                              width: 44, height: 44, borderRadius: 6,
+                              objectFit: 'cover', cursor: 'pointer', flexShrink: 0,
+                              border: '2px solid #e8e8e8'
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+
                     {/* Card body */}
                     <div style={{ padding: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: '#1a237e',
@@ -322,7 +405,7 @@ export default function SurveyPhotosPage() {
                     </div>
 
                     {/* Delete button */}
-                    {hasPhoto && (
+                    {hasPhotos && (
                       <div style={{ padding: '0 12px 10px' }}>
                         <button
                           onClick={() => setConfirmDelete({ id: s.id, entityName: s.entity_name })}
@@ -334,7 +417,7 @@ export default function SurveyPhotosPage() {
                             gap: 5, fontSize: 12, fontWeight: 600
                           }}
                         >
-                          <TrashIcon /> Delete Photo
+                          <TrashIcon /> Delete Photos
                         </button>
                       </div>
                     )}

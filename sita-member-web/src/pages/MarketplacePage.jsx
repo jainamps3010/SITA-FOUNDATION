@@ -52,9 +52,8 @@ export default function MarketplacePage() {
     if (e.key === 'Enter') fetchProducts(selectedCat, search);
   };
 
-  const handleAddToCart = (product) => {
-    addItem(product, product.moq || 1);
-    toast(`${product.name} added to cart`, 'success');
+  const handleAddToCart = () => {
+    toast('Ordering will be available soon. Stay tuned!', 'info');
   };
 
   return (
@@ -69,6 +68,12 @@ export default function MarketplacePage() {
         <button className={styles.cartBtn} onClick={() => navigate('/cart')}>
           🛒 {count > 0 && <span className={styles.badge}>{count}</span>}
         </button>
+      </div>
+
+      {/* Demo Mode Banner */}
+      <div className={styles.demoBanner}>
+        <span>⚠️</span>
+        <span>Demo Mode - Products shown are for demonstration only. Ordering not available yet.</span>
       </div>
 
       {/* Search */}
@@ -152,8 +157,8 @@ function ProductCard({ product: p, onAdd }) {
           <span className={styles.priceUnit}>/{p.unit}</span>
         </div>
         <div className={styles.moq}>Min: {p.moq} {p.unit}</div>
-        <button className={styles.addBtn} onClick={onAdd} disabled={!p.available}>
-          {p.available ? '+ Add to Cart' : 'Out of Stock'}
+        <button className={styles.comingSoonBtn} onClick={onAdd} disabled>
+          Coming Soon
         </button>
       </div>
     </div>

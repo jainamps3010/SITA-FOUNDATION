@@ -38,6 +38,20 @@
   overflow: hidden;
 }
 
+.demoNotice {
+  background: #FFF3CD;
+  border-bottom: 1.5px solid #FF8F00;
+  color: #856404;
+  padding: 10px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
 .scrollArea {
   flex: 1;
   overflow-y: auto;

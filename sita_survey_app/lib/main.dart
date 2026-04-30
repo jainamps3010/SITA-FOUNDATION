@@ -1543,6 +1543,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
   String? _invoicePhotoUrl;
   String? _vendorName;
   String _mode = 'none'; // 'none', 'scan', 'manual'
+  final List<XFile> _billPhotoFiles = [];
 
   static const categories = ['Oils', 'Grains', 'Spices', 'Gas', 'Cleaning'];
   static const units = ['Kg', 'Liters', 'Bags', 'Cylinders'];
@@ -1622,6 +1623,35 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
     return (int.tryParse(_products[index].quantityCtrl.text) ?? 0) * 12;
   }
 
+  Future<void> _addBillPhoto() async {
+    if (_billPhotoFiles.length >= 10) return;
+    final picker = ImagePicker();
+    final photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (photo == null) return;
+    setState(() => _billPhotoFiles.add(photo));
+  }
+
+  Future<List<String>> _uploadBillPhotos() async {
+    if (_billPhotoFiles.isEmpty) return [];
+    final req = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/survey/upload-invoice-photos'),
+    );
+    if (Session.token != null) {
+      req.headers['Authorization'] = 'Bearer ${Session.token}';
+    }
+    for (final file in _billPhotoFiles) {
+      req.files.add(await http.MultipartFile.fromPath('photos', file.path));
+    }
+    final streamed = await req.send();
+    final res = await http.Response.fromStream(streamed);
+    final body = jsonDecode(res.body);
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return List<String>.from(body['invoice_photos_urls'] as List);
+    }
+    throw Exception(body['message'] ?? 'Failed to upload photos');
+  }
+
   Future<void> _submit() async {
     if (_mode == 'manual') {
       if (!_formKey.currentState!.validate()) return;
@@ -1650,6 +1680,8 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
     }
     setState(() => _loading = true);
     try {
+      final billPhotoUrls = await _uploadBillPhotos();
+
       final productsData = _products
           .map((p) => {
                 'product_name': p.productCtrl.text.trim(),
@@ -1672,6 +1704,7 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
           'entity_id': widget.entityId,
           'products': productsData,
           if (_invoicePhotoUrl != null) 'invoice_photo_url': _invoicePhotoUrl,
+          if (billPhotoUrls.isNotEmpty) 'invoice_photos_urls': billPhotoUrls,
         }),
       );
       final body = jsonDecode(res.body);
@@ -1898,9 +1931,92 @@ class _ConsumptionScreenState extends State<ConsumptionScreen> {
                     const SizedBox(height: 8),
                   ],
 
+                  // ─── Bill Photos Section ──────────────────────────────
+                  if (_mode != 'none') ...[
+                    const SizedBox(height: 16),
+                    const Divider(height: 1, color: kDivider),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Add Bill Photo (Optional)',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: kTextPrimary)),
+                        Text('${_billPhotoFiles.length}/10 photos added',
+                            style: const TextStyle(
+                                color: kTextSecondary, fontSize: 12)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (_billPhotoFiles.isNotEmpty) ...[
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1,
+                        ),
+                        itemCount: _billPhotoFiles.length,
+                        itemBuilder: (ctx, i) => Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                File(_billPhotoFiles[i].path),
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: () => setState(
+                                    () => _billPhotoFiles.removeAt(i)),
+                                child: Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: const BoxDecoration(
+                                    color: kError,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close,
+                                      color: Colors.white, size: 14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    if (_billPhotoFiles.length < 10)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _addBillPhoto,
+                          icon: const Icon(Icons.camera_alt, size: 18),
+                          label: const Text('Add Photo'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF6600),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // ─── Submit ───────────────────────────────────────────
                   if (_mode != 'none') ...[
-                    const SizedBox(height: 8),
                     ElevatedButton.icon(
                       onPressed: _loading ? null : _submit,
                       icon: const Icon(Icons.send_rounded, size: 18),

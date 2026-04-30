@@ -248,6 +248,20 @@
   margin-top: 2px;
 }
 
+.demoBanner {
+  background: #FFF3CD;
+  border-top: 1.5px solid #FF8F00;
+  border-bottom: 1.5px solid #FF8F00;
+  color: #856404;
+  padding: 10px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .addBtn {
   margin-top: auto;
   padding-top: 4px;
@@ -262,3 +276,16 @@
 }
 .addBtn:hover:not(:disabled) { opacity: 0.9; }
 .addBtn:disabled { background: var(--divider); color: var(--text-secondary); cursor: not-allowed; }
+
+.comingSoonBtn {
+  background: #9E9E9E;
+  color: white;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  width: 100%;
+  margin-top: 8px;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
