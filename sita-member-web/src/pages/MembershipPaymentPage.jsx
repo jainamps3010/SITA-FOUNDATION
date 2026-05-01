@@ -32,9 +32,8 @@ export default function MembershipPaymentPage() {
     try {
       const res = await api.post('/members/submit-payment', { utr_number: utr.trim(), amount: 5000 });
       if (res.data.member) {
-        const storage = localStorage.getItem('member_token') ? localStorage : sessionStorage;
-        const existing = JSON.parse(storage.getItem('member_data') || '{}');
-        storage.setItem('member_data', JSON.stringify({ ...existing, ...res.data.member }));
+        const existing = JSON.parse(localStorage.getItem('member_data') || '{}');
+        localStorage.setItem('member_data', JSON.stringify({ ...existing, ...res.data.member }));
       }
       toast('Payment submitted! Admin will verify within 24 hours.', 'success');
       navigate('/home');

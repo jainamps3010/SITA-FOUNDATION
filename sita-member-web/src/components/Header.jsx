@@ -10,7 +10,7 @@ export default function Header({ title, showBack = false }) {
 
   const member = (() => {
     try {
-      const raw = localStorage.getItem('member_data') || sessionStorage.getItem('member_data') || '{}';
+      const raw = localStorage.getItem('member_data') || '{}';
       return JSON.parse(raw);
     }
     catch { return {}; }
@@ -47,8 +47,6 @@ export default function Header({ title, showBack = false }) {
               onClick={() => {
                 localStorage.removeItem('member_token');
                 localStorage.removeItem('member_data');
-                sessionStorage.removeItem('member_token');
-                sessionStorage.removeItem('member_data');
                 navigate('/');
               }}
             >

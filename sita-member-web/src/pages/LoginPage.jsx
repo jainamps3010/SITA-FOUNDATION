@@ -45,9 +45,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await api.post('/auth/member/verify-otp', { phone: mobile, otp });
-      const storage = rememberMe ? localStorage : sessionStorage;
-      storage.setItem('member_token', res.data.token);
-      storage.setItem('member_data', JSON.stringify(res.data.member));
+      localStorage.setItem('member_token', res.data.token);
+      localStorage.setItem('member_data', JSON.stringify(res.data.member));
       toast('Login successful!', 'success');
       const member = res.data.member;
       if (member.status === 'active' && !member.membership_paid) {

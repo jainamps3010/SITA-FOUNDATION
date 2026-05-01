@@ -3,7 +3,7 @@ import axios from 'axios';
 const api = axios.create({ baseURL: 'https://sita-backend-whn2.onrender.com/api/v1' });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('member_token') || sessionStorage.getItem('member_token');
+  const token = localStorage.getItem('member_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -14,8 +14,6 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('member_token');
       localStorage.removeItem('member_data');
-      sessionStorage.removeItem('member_token');
-      sessionStorage.removeItem('member_data');
       window.location.href = '/';
     }
     return Promise.reject(err);
