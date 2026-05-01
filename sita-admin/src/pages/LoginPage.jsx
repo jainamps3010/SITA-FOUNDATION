@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@sita.org');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, admin } = useAuth();
@@ -40,7 +40,7 @@ export default function LoginPage() {
             <input
               type="email" className="form-control"
               value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="admin@sita.org" required
+              placeholder="Enter your email" required
             />
           </div>
           <div className="form-group">
