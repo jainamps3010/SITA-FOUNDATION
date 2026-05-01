@@ -90,7 +90,7 @@ export default function Membership() {
                 <li>✓ Early access to new products</li>
                 <li>✓ Annual vendor rate contracts</li>
               </ul>
-              <a href="http://localhost:3002/register" target="_blank" rel="noreferrer" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+              <a href="https://member.sita.foundation/register" target="_blank" rel="noreferrer" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
                 Apply for Membership
               </a>
             </div>
@@ -162,7 +162,7 @@ export default function Membership() {
             <h2>Ready to Get Started?</h2>
             <p>Apply today and start accessing wholesale prices within 48 hours of KYC approval.</p>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="http://localhost:3002/register" target="_blank" rel="noreferrer" className="btn-primary">Apply Now</a>
+              <a href="https://member.sita.foundation/register" target="_blank" rel="noreferrer" className="btn-primary">Apply Now</a>
               <Link to="/how-it-works" className="btn-secondary">Learn How It Works</Link>
             </div>
           </div>

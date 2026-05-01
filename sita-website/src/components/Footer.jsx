@@ -48,6 +48,15 @@ export default function Footer() {
           </div>
 
           <div className="footer-links-col">
+            <h4>Our Portals</h4>
+            <ul>
+              <li><a href="https://member.sita.foundation" target="_blank" rel="noreferrer">Member Portal</a></li>
+              <li><a href="https://admin.sita.foundation" target="_blank" rel="noreferrer">Admin Panel</a></li>
+              <li><a href="https://survey.sita.foundation" target="_blank" rel="noreferrer">Survey Portal</a></li>
+            </ul>
+          </div>
+
+          <div className="footer-links-col">
             <h4>Contact Us</h4>
             <ul className="footer-contact">
               <li>

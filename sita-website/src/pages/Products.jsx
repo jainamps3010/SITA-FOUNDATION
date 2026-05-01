@@ -32,7 +32,7 @@ export default function Products() {
               is accessible exclusively to active members. Apply for membership to view prices and place orders.
             </p>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', marginTop: 24 }}>
-              <a href="http://localhost:3002/register" target="_blank" rel="noreferrer" className="btn-primary">Apply for Membership</a>
+              <a href="https://member.sita.foundation/register" target="_blank" rel="noreferrer" className="btn-primary">Apply for Membership</a>
               <Link to="/contact" className="btn-secondary">Contact Us</Link>
             </div>
           </div>

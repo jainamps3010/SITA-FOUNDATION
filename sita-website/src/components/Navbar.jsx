@@ -44,7 +44,7 @@ export default function Navbar() {
           <Link to="/how-it-works" className={isActive('/how-it-works') ? 'active' : ''}>How It Works</Link>
           <Link to="/membership" className={isActive('/membership') ? 'active' : ''}>Membership</Link>
           <Link to="/contact" className={isActive('/contact') ? 'active' : ''}>Contact</Link>
-          <a href="http://localhost:3002" className="nav-login-btn" target="_blank" rel="noreferrer">Login</a>
+          <a href="https://member.sita.foundation" className="nav-login-btn" target="_blank" rel="noreferrer">Login</a>
         </div>
       </div>
     </nav>
