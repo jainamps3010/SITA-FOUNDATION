@@ -52,14 +52,20 @@ const authenticateAgent = (req, res, next) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'Access token required' });
   }
+  const token = authHeader.split(' ')[1];
+  if (!token || token.split('.').length !== 3) {
+    return res.status(401).json({ success: false, message: 'Invalid token format' });
+  }
   try {
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     // Token issued by verify-otp contains { mobile, phone, type: 'driver' }
     req.agent = { phone: decoded.phone || decoded.mobile };
     next();
   } catch (err) {
-    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Token expired, please login again' });
+    }
+    return res.status(401).json({ success: false, message: 'Invalid token format' });
   }
 };
 

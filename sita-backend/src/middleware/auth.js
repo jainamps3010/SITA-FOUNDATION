@@ -11,6 +11,10 @@ const authenticateMember = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    if (!token || token.split('.').length !== 3) {
+      return res.status(401).json({ success: false, message: 'Invalid token format' });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const member = await Member.findByPk(decoded.id);
@@ -24,8 +28,11 @@ const authenticateMember = async (req, res, next) => {
     req.member = member;
     next();
   } catch (err) {
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Token expired, please login again' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: 'Invalid token format' });
     }
     next(err);
   }
@@ -39,6 +46,10 @@ const authenticateAdmin = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    if (!token || token.split('.').length !== 3) {
+      return res.status(401).json({ success: false, message: 'Invalid token format' });
+    }
+
     const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET);
 
     const admin = await Admin.findByPk(decoded.id);
@@ -49,8 +60,11 @@ const authenticateAdmin = async (req, res, next) => {
     req.admin = admin;
     next();
   } catch (err) {
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: 'Invalid or expired admin token' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Token expired, please login again' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: 'Invalid token format' });
     }
     next(err);
   }
@@ -96,6 +110,9 @@ const authenticateDriver = (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Driver access token required' });
     }
     const token = authHeader.split(' ')[1];
+    if (!token || token.split('.').length !== 3) {
+      return res.status(401).json({ success: false, message: 'Invalid token format' });
+    }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.type !== 'driver') {
       return res.status(403).json({ success: false, message: 'Driver token required' });
@@ -103,8 +120,11 @@ const authenticateDriver = (req, res, next) => {
     req.driver = { mobile: decoded.mobile || decoded.phone, phone: decoded.mobile || decoded.phone };
     next();
   } catch (err) {
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Token expired, please login again' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: 'Invalid token format' });
     }
     next(err);
   }
