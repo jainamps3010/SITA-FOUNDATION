@@ -17,7 +17,12 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
+    console.log('[Auth] Base URL:', api.defaults.baseURL);
+    console.log('[Auth] Calling:', api.defaults.baseURL + '/auth/admin/login');
+    console.log('[Auth] Payload:', { email, password });
     const res = await api.post('/auth/admin/login', { email, password });
+    console.log('[Auth] Response status:', res.status);
+    console.log('[Auth] Response data:', res.data);
     const { token, admin } = res.data;
     localStorage.setItem('sita_admin_token', token);
     localStorage.setItem('sita_admin_user', JSON.stringify(admin));

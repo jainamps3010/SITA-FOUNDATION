@@ -70,13 +70,24 @@ const prodOrigins = (process.env.ALLOWED_ORIGINS || '')
   .filter(Boolean);
 
 const allowedOrigins = [
-  // Explicit list — always respected regardless of NODE_ENV
+  // Production — sita.foundation domains
+  'https://sita.foundation',
+  'https://www.sita.foundation',
+  'https://member.sita.foundation',
+  'https://admin.sita.foundation',
+  'https://survey.sita.foundation',
+  // Production — sitafoundation.in domains (legacy)
   'https://sitafoundation.in',
   'https://www.sitafoundation.in',
   'https://admin.sitafoundation.in',
   'https://member.sitafoundation.in',
+  // Vercel preview deployments
+  'https://sita-foundation.vercel.app',
+  'https://sita-member-web.vercel.app',
+  'https://sita-admin.vercel.app',
+  'https://sita-survey-web.vercel.app',
   ...prodOrigins,
-  // Dev origins — used only when NODE_ENV === 'development'
+  // Dev origins
   'http://localhost:3001',
   'http://localhost:3002',
   'http://localhost:3003',
