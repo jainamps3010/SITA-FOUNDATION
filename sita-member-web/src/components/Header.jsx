@@ -9,7 +9,10 @@ export default function Header({ title, showBack = false }) {
   const { count } = useCart();
 
   const member = (() => {
-    try { return JSON.parse(localStorage.getItem('member_data') || '{}'); }
+    try {
+      const raw = localStorage.getItem('member_data') || sessionStorage.getItem('member_data') || '{}';
+      return JSON.parse(raw);
+    }
     catch { return {}; }
   })();
 
@@ -44,6 +47,8 @@ export default function Header({ title, showBack = false }) {
               onClick={() => {
                 localStorage.removeItem('member_token');
                 localStorage.removeItem('member_data');
+                sessionStorage.removeItem('member_token');
+                sessionStorage.removeItem('member_data');
                 navigate('/');
               }}
             >
