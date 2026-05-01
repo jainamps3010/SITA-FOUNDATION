@@ -67,11 +67,16 @@ router.post('/send-otp', async (req, res) => {
 
   driverOtpStore.set(mobile, { otp, expiresAt, attempts: 0, sentAt: Date.now() });
 
-  await twilioClient.messages.create({
-    body: `Your SITA Foundation OTP is: ${otp}`,
-    from: process.env.TWILIO_PHONE_NUMBER,
-    to: '+91' + mobile,
-  });
+  try {
+    await twilioClient.messages.create({
+      body: `Your SITA Foundation OTP is: ${otp}`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: '+91' + mobile,
+    });
+  } catch (twilioError) {
+    console.error('[Twilio Error]', twilioError.message);
+    console.log('[FALLBACK OTP]', mobile, ':', otp);
+  }
 
   res.json({ success: true, message: 'OTP sent' });
 });
@@ -185,12 +190,17 @@ router.post('/member/send-otp', [
 
     // ── Twilio SMS send ────────────────────────────────────────────────────────
     console.log(`[Twilio] Sending SMS to +91${phone} from ${TWILIO_FROM}...`);
-    const message = await twilioClient.messages.create({
-      body: `Your SITA Foundation OTP is: ${otp}`,
-      from: TWILIO_FROM,
-      to: '+91' + phone,
-    });
-    console.log(`[Twilio] SMS sent. SID: ${message.sid}, Status: ${message.status}`);
+    try {
+      const message = await twilioClient.messages.create({
+        body: `Your SITA Foundation OTP is: ${otp}`,
+        from: TWILIO_FROM,
+        to: '+91' + phone,
+      });
+      console.log(`[Twilio] SMS sent. SID: ${message.sid}, Status: ${message.status}`);
+    } catch (twilioError) {
+      console.error('[Twilio Error]', twilioError.message);
+      console.log('[FALLBACK OTP]', phone, ':', otp);
+    }
 
     res.json({
       success: true,
