@@ -33,9 +33,9 @@ const steps = [
     num: '03',
     icon: '💳',
     title: 'Pay Annual Membership Fee',
-    desc: 'Pay the ₹5,000 annual membership fee via UPI, NEFT, or bank transfer. This fee is non-refundable and covers platform access for 1 year.',
+    desc: 'Exclusive membership pricing available upon application approval. Contact us at chairman@sita.foundation for details.',
     details: [
-      'Fee: ₹5,000 per year',
+      'Membership fee details will be announced soon',
       'Non-refundable once paid',
       'Valid for 1 year from activation',
       'One outlet per membership',
@@ -77,7 +77,7 @@ const faqs = [
   },
   {
     q: 'What is the membership fee?',
-    a: 'The annual membership fee is ₹5,000. This fee is strictly non-refundable and covers platform access, KYC processing, and onboarding for 1 year.',
+    a: 'Exclusive membership pricing is available upon application approval. Contact us at chairman@sita.foundation for details.',
   },
   {
     q: 'Can I cover multiple outlets under one membership?',

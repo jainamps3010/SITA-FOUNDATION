@@ -46,7 +46,7 @@ const categories = [
 const steps = [
   { num: '01', title: 'Register', desc: 'Sign up with your hotel/restaurant details and required documents.' },
   { num: '02', title: 'KYC Approval', desc: 'Submit GST, FSSAI and other documents for verification.' },
-  { num: '03', title: 'Pay Annual Fee', desc: 'Pay the ₹5,000 annual membership fee (non-refundable).' },
+  { num: '03', title: 'Pay Annual Fee', desc: 'Exclusive membership pricing available upon application approval. Contact us for details.' },
   { num: '04', title: 'Access Marketplace', desc: 'Browse and order products at exclusive SITA member prices.' },
   { num: '05', title: 'Order & Receive', desc: 'Place bulk orders and receive delivery directly at your premises.' },
 ];

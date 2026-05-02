@@ -60,7 +60,7 @@ export default function Products() {
             <div className="cta-inner">
               <h3>Want Access to Member Prices?</h3>
               <p>Become a SITA member to view the full catalogue and place bulk orders at wholesale rates.</p>
-              <Link to="/membership" className="btn-primary">Join as Member — ₹5,000/year</Link>
+              <Link to="/membership" className="btn-primary">Join as Member</Link>
             </div>
           </div>
         </div>

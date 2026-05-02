@@ -16,13 +16,13 @@ const benefits = [
 const steps = [
   { num: '1', title: 'Fill the Application', desc: 'Submit your hotel/restaurant details and documents online or visit our office.' },
   { num: '2', title: 'KYC Verification', desc: 'Our team verifies your GST, FSSAI license, and business documents within 24-48 hours.' },
-  { num: '3', title: 'Pay Membership Fee', desc: 'Pay the ₹5,000 annual non-refundable fee via UPI, NEFT, or bank transfer.' },
+  { num: '3', title: 'Pay Membership Fee', desc: 'Exclusive membership pricing available upon application approval. Contact us for details.' },
   { num: '4', title: 'Get Access', desc: 'Membership activated immediately. Start ordering from the marketplace.' },
 ];
 
 const faqs = [
-  { q: 'Is the membership fee refundable?', a: 'No. The membership fee of ₹5,000 is strictly non-refundable. It is an annual administrative fee covering KYC processing, onboarding, and platform access.' },
-  { q: 'How long is the membership valid?', a: 'Membership is valid for 1 year from the date of activation. Renewal is required annually at ₹5,000 per year.' },
+  { q: 'Is the membership fee refundable?', a: 'The membership fee is strictly non-refundable once paid. It is an annual administrative fee covering KYC processing, onboarding, and platform access.' },
+  { q: 'How long is the membership valid?', a: 'Membership is valid for 1 year from the date of activation. Renewal is required annually. Contact us at chairman@sita.foundation for current fee details.' },
   { q: 'Can I cover multiple outlets under one membership?', a: 'No. SITA membership covers only ONE outlet per membership. Each additional outlet requires a separate membership.' },
   { q: 'What documents do I need for KYC?', a: 'Valid GST registration certificate, valid FSSAI license, PAN card (business), address proof of premises, and photo ID of the proprietor/director.' },
   { q: 'Who is eligible to apply?', a: 'Only pure vegetarian Hindu establishments are eligible. Your establishment must hold a valid GST registration and a valid FSSAI license to complete KYC verification.' },
@@ -72,14 +72,10 @@ export default function Membership() {
                 <div className="fee-badge">Annual Membership</div>
                 <h2>SITA Business<br />Member Plan</h2>
               </div>
-              <div className="fee-amount">
-                <span className="fee-currency">₹</span>
-                <span className="fee-num">5,000</span>
-                <span className="fee-period">/ year</span>
-              </div>
-              <div className="fee-note">
-                ⚠️ Annual Fee — Strictly Non-Refundable
-              </div>
+              <p style={{ color: '#FF8F00', fontWeight: 'bold', margin: '16px 0', fontSize: '1rem', lineHeight: '1.6' }}>
+                💰 Membership fee details will be announced soon.<br />
+                Contact us at <a href="mailto:chairman@sita.foundation" style={{ color: '#FF8F00' }}>chairman@sita.foundation</a> for more information.
+              </p>
               <ul className="fee-includes">
                 <li>✓ Access to wholesale product catalogue</li>
                 <li>✓ SITA member pricing on all products</li>
