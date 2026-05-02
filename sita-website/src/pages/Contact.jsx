@@ -11,9 +11,9 @@ const contactInfo = [
     icon: '📞',
     title: 'Phone',
     lines: [
-      { text: '+91 70699 24365', link: 'tel:+917069924365' },
-      { text: '+91 70698 24365', link: 'tel:+917069824365' },
-      { text: 'WhatsApp: +91 70699 24365', link: 'https://wa.me/917069924365' },
+      { text: '📞 +91 70699 24365', link: 'tel:+917069924365' },
+      { text: '📞 +91 70698 24365', link: 'tel:+917069824365' },
+      { text: '💬 WhatsApp: +91 70699 24365', link: 'https://wa.me/917069924365', target: '_blank' },
     ],
   },
   {
@@ -172,13 +172,15 @@ export default function Contact() {
                     <div className="info-icon">{c.icon}</div>
                     <div>
                       <div className="info-title">{c.title}</div>
-                      {c.lines.map((l) => {
-                        const text = typeof l === 'string' ? l : l.text;
-                        const link = typeof l === 'object' ? l.link : null;
-                        return link
-                          ? <a key={text} href={link} className="info-line link">{text}</a>
-                          : <div key={text} className="info-line">{text}</div>;
-                      })}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {c.lines.map((l) => {
+                          const text = typeof l === 'string' ? l : l.text;
+                          const link = typeof l === 'object' ? l.link : null;
+                          return link
+                            ? <a key={text} href={link} target={l.target || undefined} className="info-line link">{text}</a>
+                            : <div key={text} className="info-line">{text}</div>;
+                        })}
+                      </div>
                     </div>
                   </div>
                 ))}

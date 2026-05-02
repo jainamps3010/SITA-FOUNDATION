@@ -64,12 +64,11 @@ export default function Footer() {
                 <span>SITA Foundation, Surat, Gujarat, India</span>
               </li>
               <li>
-                <span className="icon">📞</span>
-                <a href="tel:+917069924365">+91 70699 24365</a>
-              </li>
-              <li>
-                <span className="icon">📞</span>
-                <a href="tel:+917069824365">+91 70698 24365</a>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <a href="tel:+917069924365">📞 +91 70699 24365</a>
+                  <a href="tel:+917069824365">📞 +91 70698 24365</a>
+                  <a href="https://wa.me/917069924365" target="_blank" rel="noreferrer">💬 WhatsApp: +91 70699 24365</a>
+                </div>
               </li>
               <li>
                 <span className="icon">✉️</span>
